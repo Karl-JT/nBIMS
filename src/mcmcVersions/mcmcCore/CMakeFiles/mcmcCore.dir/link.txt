@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmcmcCore.a  CMakeFiles/mcmcCore.dir/MCMCMetropolis.cpp.o
+/usr/bin/ranlib libmcmcCore.a

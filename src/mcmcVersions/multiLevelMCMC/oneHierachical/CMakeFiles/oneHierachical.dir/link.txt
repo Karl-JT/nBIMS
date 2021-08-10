@@ -1,0 +1,2 @@
+/usr/bin/ar qc liboneHierachical.a  CMakeFiles/oneHierachical.dir/MLMCMCSerial.cpp.o
+/usr/bin/ranlib liboneHierachical.a

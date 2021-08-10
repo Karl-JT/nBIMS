@@ -1,0 +1,76 @@
+from ufl import *
+set_level(DEBUG)
+
+V = VectorElement("CG", triangle, 2)
+Q = FiniteElement("CG", triangle, 1)
+
+Vh_STATE = MixedElement([V, Q])
+
+Reynolds = 1.0
+nu = 1./Reynolds
+
+def residual(x, xt, sigma, m, xl):
+    u, p = split(x)
+    v, q = split(xt)
+    ul, pl = split(xl)
+
+    res = inner(grad(u)*u, v)*dx \
+        + exp(m)*nu*inner(grad(u), grad(v))*dx \
+        - p*div(v)*dx \
+        - q*div(u)*dx \
+        + sigma*inner(u - ul, v)*dx
+
+    return res
+
+
+def Wuu(x, xt):
+    u, p = split(x)
+    ut, pt = split(xt)
+
+    res = inner(u, ut)*dx
+
+    return res
+
+def R(m, mt):
+    res = inner(m, mt)*dx
+
+    return res
+
+
+sigma = Constant(triangle)
+
+x = Coefficient(Vh_STATE)
+xl = Coefficient(Vh_STATE)
+xt = TestFunction(Vh_STATE)
+adjoints = Coefficient(Vh_STATE)
+
+m = Coefficient(Q)
+
+F = residual(x, xt, sigma, m, xl)
+Fm = residual(x, adjoints, sigma, m, xl)
+
+dstate = TrialFunction(Vh_STATE)
+dxx  = TestFunction(Vh_STATE)
+dm   = TestFunction(Q)
+dmm = TrialFunction(Q)
+
+J = derivative(F, x, dstate)
+
+Jm   = derivative(Fm, m, dm)
+Jx   = derivative(Fm, x, dxx)
+Jadj = derivative(Fm, adjoints, dxx) 
+
+Rform = derivative(Jm, m, dmm)
+Aform = derivative(Jadj, x, dstate)
+Cform = derivative(Jadj, m, dmm)
+WuuForm = derivative(Jx, x, dstate)
+WuaForm = derivative(Jx, m, dmm)
+WauForm = derivative(Jm, x, dstate )
+
+WuuAdd = Wuu(x, xt)
+Radd = R(x, xt)
+WuuFormAdd = derivative(WuuAdd, x, dstate)
+RFormAdd = derivative(Radd, m, dmm)
+
+elements = [Vh_STATE, V, Q]
+forms = [F, Fm, J, Jm, Jx, Jadj, Rform, Aform, Cform, WuuForm, WuuFormAdd, RFormAdd, WauForm, WuaForm]

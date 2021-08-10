@@ -1,0 +1,18 @@
+configuration: 
+num_term: 4 coefs: 0.5152 0.2614 -0.9415 -0.1623 
+levels: 6
+a: 3
+pCN: 1
+task: 3
+plainMCMC samples:300
+obsNumPerRow: 16
+noiseVariance: 0.001
+ref solution generated
+set locations
+set to petsc vec
+L0 norm: 25.4548
+L1 norm: 8.71228
+L2 norm: 2.52957
+L3 norm: 0.718409
+L4 norm: 0.222236
+L5 norm: 0.0687403

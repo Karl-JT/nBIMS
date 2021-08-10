@@ -1,0 +1,158 @@
+#include "../forwardSolverArray/ChannelCppSolverBiMesh.h" 
+#include "mcmcCore/MCMCMetropolis.h"
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+#include <random>
+
+
+
+
+int main(int argc, char **argv){
+	//Initialize MPI
+	// int procid, numprocs;
+	// MPI_Init(&argc, &argv);
+	// MPI_Comm_rank(MPI_COMM_WORLD, &procid);
+	// MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+
+	gsl_rng *r;
+	const gsl_rng_type *T;
+
+	gsl_rng_env_setup();
+	T = gsl_rng_default;
+	r = gsl_rng_alloc(T);
+
+	gsl_rng_set(r, 2019);
+
+	int numCoef = stof(argv[2]);
+	double decay = 1;
+
+	cout << "test" << endl;
+
+	//Initialize forward solver
+	double reTau = stof(argv[1]);
+	caseProp<double> turbProp;
+	caseInitialize(turbProp, reTau, 5);
+	initialization(turbProp);
+
+	cout << "test" << endl;
+
+	//Initialize IO
+	chainIO MCMCChainIO(0, numCoef);
+
+	//Initialize Proposal Kernal
+	default_random_engine generator;
+	generator.seed(20191016);
+	uniform_real_distribution<double> acceptance(0, 1);
+
+	double stepSize = 0.005; 
+	vector<double> approximateCoef(numCoef, 0);
+	vector<double> approximateCoefProposal(numCoef);
+	vector<double> fourierSeriesCoef(numCoef, 0);
+	approximateCoefProposal = approximateCoef;
+	compUniformProposal coefProposal(numCoef, 0);
+	coefProposal.scale = stepSize;
+
+	//Initialize propability variables
+	double lnLikelihoodt0 = 0;
+	double lnLikelihoodt1 = 0;
+	double alpha = 0;
+
+	//update beta values
+	vector<double> betaT0(turbProp.m);
+	for (int i = 0; i < turbProp.m; i++){
+		betaT0[i] = 0;
+		for (int k = 0; k < numCoef; k++){
+			betaT0[i] = betaT0[i] + fourierSeriesCoef[k]/pow((k+1), decay)*cos(M_PI*(k+1)*turbProp.yCoordinate[i]); 
+		}
+		turbProp.betaML[i] = exp(betaT0[i]);
+	}
+
+	//solve 
+	iterativeSolver(turbProp);
+	for (int i = 5; i < turbProp.m; i+=9) {
+		lnLikelihoodt0 = lnLikelihoodt0 - 1e4*pow((turbProp.xVelocity[i]-turbProp.dnsData[i]*turbProp.frictionVelocity), 2);
+	}
+	cout << lnLikelihoodt0 << endl;
+
+
+///////////////////////////////////////Chain Start////////////////////////////////////////////
+	for (int j = 0; j < 10000000; j++){	
+		lnLikelihoodt1 = 0;
+		approximateCoefProposal = coefProposal.compGaussianProposalGenerator();
+		for (int i = 0; i < numCoef; i++){
+			approximateCoefProposal[i] = sqrt(1-pow(stepSize, 2))*approximateCoef[i] + stepSize*approximateCoefProposal[i];
+			cout << approximateCoefProposal[i] << " ";
+			fourierSeriesCoef[i] = approximateCoefProposal[i];//2*gsl_cdf_ugaussian_P(approximateCoefProposal[i])-1;
+			cout << fourierSeriesCoef[i] << " ";
+		}
+		cout << endl;
+
+
+		// Forward Solving
+		for (int i = 0; i < turbProp.m; i++){
+			betaT0[i] = turbProp.betaML[i];
+			turbProp.betaML[i] = 0; 
+			for (int k = 0; k < numCoef; k++){
+				turbProp.betaML[i] = turbProp.betaML[i] + fourierSeriesCoef[k]/pow((k+1), decay)*cos(M_PI*(k+1)*turbProp.yCoordinate[i]); 
+			}
+			turbProp.betaML[i] = exp(turbProp.betaML[i]);
+			//cout << turbProp.betaML[i] << " ";
+		}
+
+		iterativeSolver(turbProp);
+		for (int i = 5; i < turbProp.m; i+=9) {
+			lnLikelihoodt1 = lnLikelihoodt1 - 1e4*pow((turbProp.xVelocity[i]-turbProp.dnsData[i]*turbProp.frictionVelocity), 2);
+		}
+		cout << lnLikelihoodt1 << endl;
+		// int count = 0;
+		// for (int i = 0; i < turbProp.m; i++) {
+		// 	if (turbProp.yCoordinate[i] - (count*0.125-1) < 0.0001){
+		// 		lnLikelihoodt1 = lnLikelihoodt1 - 1e4*pow((turbProp.xVelocity[i]-turbProp.dnsData[i]*turbProp.frictionVelocity), 2);
+		// 		count++;
+		// 	}
+		// }
+		// for (double coef : approximateCoefProposal){
+		// 	lnLikelihoodt1 = lnLikelihoodt1 - 4*pow(coef, 2);
+		// }
+
+		// Acceptance Check
+		alpha = min(0.0, lnLikelihoodt1-lnLikelihoodt0);
+		cout << endl << "lnLikelihoodt1: "<< lnLikelihoodt1 << " lnLikelihoodt0: " << lnLikelihoodt0 << " alpha: " << alpha << endl;
+		coefProposal.updateAcceptanceRate(alpha);
+		cout << "stepSize: " << stepSize << endl;
+		if (alpha >= log(acceptance(generator))){
+			// Update likelihood
+			cout << "sample accepted" << endl;
+			lnLikelihoodt0 = lnLikelihoodt1;
+
+			MCMCChainIO.chainWriteBeta(turbProp.betaML);
+			MCMCChainIO.chainWriteVelocity(turbProp.xVelocity);
+			MCMCChainIO.chainWriteCoef(approximateCoef);
+
+			// Backup current status
+			for (int i = 0; i < numCoef; i++){
+				betaT0[i] = turbProp.betaML[i];
+			}
+			approximateCoef = approximateCoefProposal;
+		} else {
+			cout << "sample rejected" << endl;
+			for (int i = 0; i < numCoef; i++){
+				turbProp.betaML[i] = betaT0[i];
+			}
+			MCMCChainIO.chainWriteCoef(approximateCoef);
+			approximateCoefProposal = approximateCoef;
+		}
+		cout << "Current lnLikelihoodt0: " << lnLikelihoodt0 << endl; 
+	}
+	MPI_Finalize();
+	return 0;
+}

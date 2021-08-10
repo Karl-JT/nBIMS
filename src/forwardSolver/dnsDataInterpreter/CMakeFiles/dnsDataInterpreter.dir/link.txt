@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdnsDataInterpreter.a  CMakeFiles/dnsDataInterpreter.dir/dnsDataInterpreterArray.cpp.o
+/usr/bin/ranlib libdnsDataInterpreter.a

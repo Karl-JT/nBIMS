@@ -1,0 +1,3 @@
+/home/yjuntao/stokes/MCMC4LargeScalePDE/src/tuts/stokes/CMakeFiles/rebuild_cache.dir
+/home/yjuntao/stokes/MCMC4LargeScalePDE/src/tuts/stokes/CMakeFiles/stokeTutorial.dir
+/home/yjuntao/stokes/MCMC4LargeScalePDE/src/tuts/stokes/CMakeFiles/edit_cache.dir

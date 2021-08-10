@@ -1,0 +1,6 @@
+
+{
+	"cmd": ["g++", "-L/usr/local/lib64", "-L/home/juntao/petsc/lib", "-L/home/juntao/petsc/arch-linux2-c-debug/lib","$file", "-ladolc", "-lpetsc", "-lmpi", "-lqueso", "-o", "$file_base_name", "-I/usr/local/include", "-I/home/juntao/Desktop/oneDimChanTurbSolver/FullChanCpp/eigen", "-I/home/juntao/petsc/include", "-I/home/juntao/petsc/arch-linux2-c-debug/include"],
+	"selector": "source.c++",
+
+}

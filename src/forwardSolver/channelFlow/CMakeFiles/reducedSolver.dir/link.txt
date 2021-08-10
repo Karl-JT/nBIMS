@@ -1,0 +1,2 @@
+/usr/bin/ar qc libreducedSolver.a  CMakeFiles/reducedSolver.dir/ChannelCppSolverBiMesh.cpp.o CMakeFiles/reducedSolver.dir/turbSolver.cpp.o
+/usr/bin/ranlib libreducedSolver.a

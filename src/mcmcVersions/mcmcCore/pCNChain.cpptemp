@@ -1,0 +1,25 @@
+#include "pCNChain.h"
+
+pCNChain::pCNChain(string outputPath, int maxChainLength_, int procid_, int numCoef_, int samplerLevel_, double randomSeed) : MCMCChain(string outputPath, int maxChainLength_, int procid_, int numCoef_, int samplerLevel_, double randomSeed){
+	coefProposal = std::make_shared<compUniformProposal>(numCoef, procid_, randomSeed);
+}
+
+void MCMCChain::runStep(){
+	//Proposal
+	coefProposal->compGaussianProposalGenerator(approximateCoefProposal);
+	for (int i = 0; i < numCoef; i++){
+		approximateCoefProposal[i] = sqrt(1-pow(stepSize, 2))*approximateCoef[i] + stepSize*approximateCoefProposal[i];
+	}
+
+	//update beta
+	turbProp.updateBeta(approximateCoefProposal, 1, 1);
+
+	//solve forward and compute likelihood
+	iterativeSolver(turbProp);
+	lnLikelihoodt1 = turbProp.validationLnLikelihood(turbProp.validationObservation(), 1);
+	alpha = min(0.0, lnLikelihoodt1-lnLikelihoodt0);
+	coefProposal->updateAcceptanceRate(alpha);
+	chainLength++;
+}
+
+void MCMCChain::run(){}

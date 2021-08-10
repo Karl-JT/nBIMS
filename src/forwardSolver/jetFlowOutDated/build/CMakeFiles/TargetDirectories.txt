@@ -1,0 +1,6 @@
+/home/fenics/shared/build/CMakeFiles/rebuild_cache.dir
+/home/fenics/shared/build/CMakeFiles/jetFlowTest.dir
+/home/fenics/shared/build/CMakeFiles/edit_cache.dir
+/home/fenics/shared/build/jetFlowSolver/CMakeFiles/rebuild_cache.dir
+/home/fenics/shared/build/jetFlowSolver/CMakeFiles/jetFlowSolver.dir
+/home/fenics/shared/build/jetFlowSolver/CMakeFiles/edit_cache.dir

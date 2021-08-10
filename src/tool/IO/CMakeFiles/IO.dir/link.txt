@@ -1,0 +1,2 @@
+/usr/bin/ar qc libIO.a  CMakeFiles/IO.dir/confIO.cpp.o CMakeFiles/IO.dir/dataIO.cpp.o
+/usr/bin/ranlib libIO.a

@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(stokeSolver)
+
+find_package(DOLFIN REQUIRED)
+include(${DOLFIN_USE_FILE})
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
+add_executable(testSolve stokes_Q1isoQ2.cpp)
+
+set_property(TARGET testSolve PROPERTY CXX_STANDARD 14)
+
+target_link_libraries(  testSolve PUBLIC
+                        dolfin
+                        )
+
+target_include_directories(	testSolve INTERFACE 
+				${CMAKE_CURRENT_SOURCE_DIR} 
+				)
+

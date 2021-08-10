@@ -1,0 +1,22 @@
+from ufl import *
+set_level(DEBUG)
+
+V = VectorElement('CG', triangle, 2)
+Q = FiniteElement('CG', triangle, 1)
+
+Wh_STATE = MixedElement([V, Q, Q, Q])
+Q_vec = MixedElement([Q, Q])
+
+x  = TrialFunction(Wh_STATE)
+xt = TestFunction(Wh_STATE)
+
+u, p, k, e = split(x)
+ut, pt, kt, et = split(xt)
+Wform = inner(u, ut)*dx
+
+m = TrialFunction(Q)
+mt = TestFunction(Q)
+Qform = inner(m, mt)*dx
+
+elements = [Wh_STATE, Q]
+forms = [Wform, Qform]

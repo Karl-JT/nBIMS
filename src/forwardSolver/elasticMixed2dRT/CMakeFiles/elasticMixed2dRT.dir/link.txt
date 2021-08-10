@@ -1,0 +1,2 @@
+/usr/bin/ar qc libelasticMixed2dRT.a  CMakeFiles/elasticMixed2dRT.dir/elasticMixed2dRT.cpp.o
+/usr/bin/ranlib libelasticMixed2dRT.a

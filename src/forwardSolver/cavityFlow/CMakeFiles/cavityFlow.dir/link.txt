@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcavityFlow.a  CMakeFiles/cavityFlow.dir/cavityFlowCase.cpp.o CMakeFiles/cavityFlow.dir/cavityFlowSolver.cpp.o
+/usr/bin/ranlib libcavityFlow.a

@@ -1,0 +1,22 @@
+#configuration file for MLMCMC test
+num_coef=1
+u0=0.8
+#u1=-0.5
+#u2= 0.3
+#u3= 0.8
+#u4=-0.1461
+#u5=-0.5320
+#u6= 1.6821
+#u7=-0.8757
+#u8=-0.4838
+#u9=-0.7120
+num_levels=3
+mlmcmc_a=2
+pCN_step=1.0
+#task 0: generate observation # task 1: run plain mcmc # task 2: run mlmcmc  #task 3: convergence test 1  #task 4: convergence test 2 #task 5: convergence test 3 #task 6: quadrature intgration #task 7: forward compute reference #task 8: mlmcmc pre run #task 9 mlmcmc run ind
+task=3
+parallelChainOptions=0
+plainmcmc_sample=50
+obsNumPerRow=16
+noiseVariance=1.0
+randomSeed=1731

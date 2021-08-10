@@ -1,0 +1,17 @@
+#include <iostream>
+
+class forwardSolver {
+private:
+
+public:
+	stokesSolver(int level_, int num_term_, double noiseVariance_);
+	~stokesSolver(){};
+
+	void updateGeneratorSeed(double seed_);
+	double lnLikelihood();
+	void solve4Obs();
+	double solve4QoI();
+	double obsOutput();
+	double qoiOutput();
+	void solve(int flag=0);
+};

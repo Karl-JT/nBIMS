@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/shared/src/forwardSolver/dnsDataInterpreter/dnsDataInterpreterArray.cpp
+dnsDataInterpreterArray.h
+/home/shared/src/forwardSolver/dnsDataInterpreter/dnsDataInterpreterArray.h
+iostream
+-
+
+/home/shared/src/forwardSolver/dnsDataInterpreter/dnsDataInterpreterArray.h
+

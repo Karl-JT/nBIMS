@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/fenics/shared/src/mcmcVersions/mcmcCore/MCMCMetropolis.cpp
+MCMCMetropolis.h
+/home/fenics/shared/src/mcmcVersions/mcmcCore/MCMCMetropolis.h
+time.h
+-
+
+/home/fenics/shared/src/mcmcVersions/mcmcCore/MCMCMetropolis.h
+gsl/gsl_rng.h
+-
+gsl/gsl_randist.h
+-
+gsl/gsl_vector.h
+-
+gsl/gsl_matrix.h
+-
+gsl/gsl_linalg.h
+-
+random
+-
+vector
+-
+fstream
+-
+sstream
+-
+iostream
+-
+time.h
+-
+

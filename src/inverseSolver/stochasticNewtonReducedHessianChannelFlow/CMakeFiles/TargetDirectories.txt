@@ -1,0 +1,3 @@
+/home/juntao/Desktop/oneDimChanTurbSolver/src/inverseSolver/stochasticNewtonReducedHessianChannelFlow/CMakeFiles/rebuild_cache.dir
+/home/juntao/Desktop/oneDimChanTurbSolver/src/inverseSolver/stochasticNewtonReducedHessianChannelFlow/CMakeFiles/stochasticNewtonReducedHessianChannelFlow.dir
+/home/juntao/Desktop/oneDimChanTurbSolver/src/inverseSolver/stochasticNewtonReducedHessianChannelFlow/CMakeFiles/edit_cache.dir

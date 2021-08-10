@@ -1,0 +1,4565 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <ctime>
+#include <chrono>
+#include <memory>
+#include <cmath>
+#include <random>
+#include <vector>
+#include <algorithm>
+#include <mpi.h>
+#include <petsc.h>
+
+// #include <MLMCMC_Bi.h>
+// #include <MLMCMC_Bi_Uniform.h>
+#include <linearAlgebra.h>
+
+double ref(double x, double y, int dir, void* ctx){
+    double output;
+    if (dir == 0) {
+		output = -std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*(exp(1.0)-1.0);
+    } else if (dir == 1) {
+    	output = std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*(exp(1.0)-1.0);//*exp(1.0);
+    }
+    return output;
+}
+
+
+class mesh_periodic{
+private:
+public:
+	int level;
+	int division_Q1isoQ2;
+	int division_Q1;
+	int num_Q1isoQ2_element;
+	int num_Q1_element;
+	int num_node_Q1isoQ2;
+	int num_node_Q1;
+
+	std::unique_ptr<std::unique_ptr<double[]>[]> points;
+	std::unique_ptr<std::unique_ptr<int[]>[]> quadrilaterals;
+	std::unique_ptr<int[]> Q1_idx;
+	std::unique_ptr<int[]> mesh_idx;
+	std::unique_ptr<int[]> PBC_Q1isoQ2_idx;
+	std::unique_ptr<int[]> PBC_Q1_idx;
+	std::unique_ptr<int[]> bs;
+
+	Mat A;
+	Mat M;
+	Mat zeroMatrix;
+
+	mesh_periodic(int level_);
+	~mesh_periodic(){};
+
+	void mass_matrix_element(double P[][4], double mass_element[][4]);
+	void stiffness_matrix_element(double P[][4], double stiffness_element[][4]);
+	void M_matrix();
+	void A_matrix();
+	void load_vector_element(double x1[], double x2[], double v[], int dir, double (*f)(double, double, int, void*), void* ctx);
+	void load_vector(Vec &load, double (*f)(double, double, int, void*), void* ctx);
+	void interpolate(Vec &load, Vec &interpolation);
+
+	void shape_function(double epsilon, double eta, double N[]);
+	void jacobian_matrix(double x1[4], double x2[4], double epsilon, double eta, double J[2][2]);
+	void jacobian_inv(double x1[4], double x2[4], double epsilon, double eta, double J[2][2]);
+	void basis_function(double epsilon, double eta, double N[]);
+	void basis_function_derivative(double dPhi[4][2], double epsilon, double eta);
+	void hat_function_derivative(double dPhi[4][2], double epsilon, double eta, double x1[4], double x2[4]);
+	double shape_interpolation(double epsilon, double eta, double x[4]);
+	double jacobian_det(double J[2][2]);
+};
+
+mesh_periodic::mesh_periodic(int level_): level(level_) {
+	division_Q1isoQ2 = 2*(std::pow(2, level_+1));
+	division_Q1 = division_Q1isoQ2/2;
+
+	num_Q1isoQ2_element = division_Q1isoQ2*division_Q1isoQ2;
+	num_Q1_element = 0.25*num_Q1isoQ2_element;
+	num_node_Q1isoQ2 = std::pow(division_Q1isoQ2+1, 2);
+	num_node_Q1 = std::pow(division_Q1isoQ2/2+1, 2);
+
+	points    = std::make_unique<std::unique_ptr<double[]>[]>(2);
+	points[0] = std::make_unique<double[]>(num_node_Q1isoQ2);
+	points[1] = std::make_unique<double[]>(num_node_Q1isoQ2);
+
+	double xCoord = 0;
+	double yCoord = 0;
+	for (int i=0; i<num_node_Q1isoQ2; i++){
+		if (xCoord-1 > 1e-6){
+			xCoord = 0;
+			yCoord += 1.0/division_Q1isoQ2;
+		}
+		points[0][i] = xCoord;
+		points[1][i] = yCoord;
+		xCoord += 1.0/division_Q1isoQ2;
+	}
+
+	quadrilaterals = std::make_unique<std::unique_ptr<int[]>[]>(4);
+	for (int i=0; i<4; i++){
+		quadrilaterals[i] = std::make_unique<int[]>(num_Q1isoQ2_element);
+	}
+	int refDof[4] = {0, 1, division_Q1isoQ2+2, division_Q1isoQ2+1};
+	for (int i=0; i<num_Q1isoQ2_element; i++){
+		quadrilaterals[0][i] = refDof[0];
+		quadrilaterals[1][i] = refDof[1];
+		quadrilaterals[2][i] = refDof[2];
+		quadrilaterals[3][i] = refDof[3];
+
+		if ((refDof[1]+1)%(division_Q1isoQ2+1) == 0){
+			refDof[0] += 2;
+			refDof[1] += 2;
+			refDof[2] += 2;
+			refDof[3] += 2;
+		} else {
+			refDof[0] += 1;
+			refDof[1] += 1;
+			refDof[2] += 1;
+			refDof[3] += 1;
+		}
+	}
+
+	Q1_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		Q1_idx[i] = num_node_Q1isoQ2;
+	}
+
+	int position = 0;
+	int value = 0;
+	for (int i = 0; i < division_Q1isoQ2/2.0+1; i++){
+		position = 2*(division_Q1isoQ2+1)*i;
+		for (int j = 0; j < division_Q1isoQ2/2.0+1; j++){
+			Q1_idx[position] = value;
+			value += 1; 
+			position = position + 2;
+		}
+	}
+
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		if (Q1_idx[i] == num_node_Q1isoQ2){
+			Q1_idx[i] += i;
+		}
+	}
+
+	std::vector<int> mesh_idx_vector(num_node_Q1isoQ2);
+	std::vector<int> mesh_idx_vector2(num_node_Q1isoQ2);
+
+	std::iota(mesh_idx_vector.begin(), mesh_idx_vector.end(), 0);
+	std::iota(mesh_idx_vector2.begin(), mesh_idx_vector2.end(), 0);
+
+	std::stable_sort(mesh_idx_vector.begin(), mesh_idx_vector.end(), [&](int i, int j){return Q1_idx[i] < Q1_idx[j];});
+	std::stable_sort(mesh_idx_vector2.begin(), mesh_idx_vector2.end(), [&](int i, int j){return mesh_idx_vector[i] < mesh_idx_vector[j];});
+	mesh_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		mesh_idx[i] = mesh_idx_vector2[i];
+	}
+
+	//Periodic Boundary Condition Mapping
+	std::vector<int> PBC_Q1isoQ2(num_node_Q1isoQ2);
+	std::vector<int> PBC_Q1(num_node_Q1isoQ2);
+
+	std::iota(PBC_Q1isoQ2.begin(), PBC_Q1isoQ2.end(), 0);
+	for (int i = 0; i < num_node_Q1isoQ2; ++i){
+		PBC_Q1[i] = mesh_idx[i];
+	}
+
+	bs = std::make_unique<int[]>(division_Q1isoQ2*2+1);
+	int b_pos[2] = {division_Q1isoQ2, num_node_Q1isoQ2-1};
+	bs[0] = b_pos[0];
+	bs[1] = b_pos[1];
+	bs[division_Q1isoQ2*2] = num_node_Q1isoQ2-1-division_Q1isoQ2;	 
+	PBC_Q1isoQ2[b_pos[0]] = 0;
+	PBC_Q1isoQ2[b_pos[1]] = 0;
+	PBC_Q1isoQ2[num_node_Q1isoQ2-1-division_Q1isoQ2] = 0;
+	PBC_Q1[b_pos[0]] = mesh_idx[0];
+	PBC_Q1[b_pos[1]] = mesh_idx[0];
+	PBC_Q1[num_node_Q1isoQ2-1-division_Q1isoQ2] = mesh_idx[0];
+	for (int i = 1; i < division_Q1isoQ2;++i){
+		PBC_Q1isoQ2[b_pos[0]+(division_Q1isoQ2+1)*i] = b_pos[0]+(division_Q1isoQ2+1)*i - division_Q1isoQ2;
+		PBC_Q1isoQ2[b_pos[1]-i] = division_Q1isoQ2 - i;
+		PBC_Q1[b_pos[0]+(division_Q1isoQ2+1)*i] = mesh_idx[b_pos[0]+(division_Q1isoQ2+1)*i - division_Q1isoQ2];
+		PBC_Q1[b_pos[1]-i] = mesh_idx[division_Q1isoQ2 - i];
+		bs[2*i] = b_pos[0]+(division_Q1isoQ2+1)*i;
+		bs[2*i+1] = b_pos[1]-i;
+	}
+
+	PBC_Q1isoQ2_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	PBC_Q1_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		PBC_Q1isoQ2_idx[i] = PBC_Q1isoQ2[i];
+		PBC_Q1_idx[i] = PBC_Q1[i];
+	}	
+}
+
+
+void mesh_periodic::shape_function(double epsilon, double eta, double N[]){
+	N[0] = 0.25*(1.0-epsilon)*(1.0-eta);
+	N[1] = 0.25*(1.0+epsilon)*(1.0-eta);
+	N[2] = 0.25*(1.0+epsilon)*(1.0+eta);
+	N[3] = 0.25*(1.0-epsilon)*(1.0+eta);
+};
+
+double mesh_periodic::shape_interpolation(double epsilon, double eta, double x[4]){
+	double N[4];
+	double x_interpolated;
+	shape_function(epsilon, eta, N);
+	x_interpolated = N[0]*x[0]+N[1]*x[1]+N[2]*x[2]+N[3]*x[3];
+	return x_interpolated;
+}
+
+void mesh_periodic::jacobian_matrix(double x1[4], double x2[4], double eta, double epsilon, double J[2][2]){
+	J[0][0] = 0.25*((eta-1)*x1[0]+(1-eta)*x1[1]+(1+eta)*x1[2]-(1+eta)*x1[3]); 
+	J[0][1] = 0.25*((eta-1)*x2[0]+(1-eta)*x2[1]+(1+eta)*x2[2]-(1+eta)*x2[3]); 
+	J[1][0] = 0.25*((epsilon-1)*x1[0]-(1+epsilon)*x1[1]+(1+epsilon)*x1[2]+(1-epsilon)*x1[3]); 
+	J[1][1] = 0.25*((epsilon-1)*x2[0]-(1+epsilon)*x2[1]+(1+epsilon)*x2[2]+(1-epsilon)*x2[3]); 
+};
+
+double mesh_periodic::jacobian_det(double J[2][2]){
+	double detJ = J[1][1]*J[0][0] - J[0][1]*J[1][0];
+	return detJ;
+};
+
+void mesh_periodic::jacobian_inv(double x1[4], double x2[4], double epsilon, double eta, double Jinv[2][2]){
+	double J[2][2];
+	jacobian_matrix(x1, x2, epsilon, eta, J);
+	double Jdet = jacobian_det(J);
+	Jinv[0][0] = J[1][1]/Jdet;	
+	Jinv[0][1] =-J[0][1]/Jdet;
+	Jinv[1][0] =-J[1][0]/Jdet;	
+	Jinv[1][1] = J[0][0]/Jdet;
+};
+
+void mesh_periodic::basis_function(double epsilon, double eta, double N[]){
+	shape_function(epsilon, eta, N);
+};
+
+void mesh_periodic::basis_function_derivative(double basisdPhi[4][2], double epsilon, double eta){
+	basisdPhi[0][0] = -0.25+0.25*eta;	
+	basisdPhi[1][0] = 0.25-0.25*eta;
+	basisdPhi[2][0] = 0.25+0.25*eta;
+	basisdPhi[3][0] = -0.25-0.25*eta;
+	basisdPhi[0][1] = -0.25+0.25*epsilon;	
+	basisdPhi[1][1] = -0.25-0.25*epsilon;
+	basisdPhi[2][1] = 0.25+0.25*epsilon;
+	basisdPhi[3][1] = 0.25-0.25*epsilon;		
+};
+
+void mesh_periodic::hat_function_derivative(double dPhi[4][2], double epsilon, double eta, double x1[4], double x2[4]){
+	double basisdPhi[4][2];
+	double Jinv[2][2];
+	basis_function_derivative(basisdPhi, epsilon, eta);
+	jacobian_inv(x1, x2, epsilon, eta, Jinv);
+	for (int i = 0; i < 4; ++i){
+		for (int j = 0; j < 2; ++j){
+			dPhi[i][j] = basisdPhi[i][0]*Jinv[0][j] + basisdPhi[i][1]*Jinv[1][j];
+		}
+	}
+}
+
+void mesh_periodic::mass_matrix_element(double P[][4], double mass_element[][4]){
+	double N[4];
+	double J[2][2];
+	double Jdet[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints[4][4];
+	double gpWeights[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			jacobian_matrix(P[0], P[1], refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints[2*i+j][k] = N[k];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			mass_element[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				mass_element[i][j] += gpWeights[k]*gpPoints[k][i]*gpPoints[k][j]*Jdet[k];
+			}
+		}
+	}
+}
+
+void mesh_periodic::M_matrix(){
+	MatCreate(PETSC_COMM_SELF, &M);
+	MatSetSizes(M, PETSC_DECIDE, PETSC_DECIDE, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	if (level > 7){
+		MatSetType(M, MATSEQAIJCUSPARSE);
+	} else {
+		MatSetType(M, MATSEQAIJ);
+	}
+	MatSeqAIJSetPreallocation(M, 12, NULL);
+	MatMPIAIJSetPreallocation(M, 12, NULL, 12, NULL);
+
+	double mass_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		mass_matrix_element(element_points, mass_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(M, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], mass_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY);
+}
+
+void mesh_periodic::stiffness_matrix_element(double P[][4], double stiffness_element[][4]){
+	double dPhi[4][2];
+	double J[2][2];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints[4][8];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], P[0], P[1]);
+			jacobian_matrix(P[0], P[1], refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 8; ++k){
+				gpPoints[2*i+j][k] = dPhi[k%4][k/4];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			stiffness_element[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				stiffness_element[i][j] += gpWeights[k]*(gpPoints[k][i]*gpPoints[k][j]+gpPoints[k][4+i]*gpPoints[k][4+j])*Jdet[k];
+			}
+		}
+	}
+};
+
+void mesh_periodic::A_matrix(){
+	MatCreate(PETSC_COMM_SELF, &A);
+	MatSetSizes(A, PETSC_DECIDE, PETSC_DECIDE, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	if (level > 7){
+		MatSetType(A, MATSEQAIJCUSPARSE);
+	} else {
+		MatSetType(A, MATSEQAIJ);
+	}
+	MatSeqAIJSetPreallocation(A, 12, NULL);
+	MatMPIAIJSetPreallocation(A, 12, NULL, 12, NULL);
+
+
+	double stiffness_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		stiffness_matrix_element(element_points, stiffness_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(A, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], stiffness_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+};
+
+void mesh_periodic::load_vector_element(double x1[], double x2[], double v[], int dir, double (*f)(double, double, int, void*), void* ctx){
+	double J[2][2];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints1[25];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+	double Jdet[25];
+	double N[4];
+
+	double x;
+	double y;
+
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			gpPoints1[5*i+j] = f(x, y, dir, ctx);
+			for (int k = 0; k < 4; ++k){
+				gpPoints2[5*i+j][k] = N[k];
+			}
+		}
+	}
+	for (int i = 0; i < 4; i++){
+		v[i] = 0;
+		for (int k = 0; k < 25; k++){
+			v[i] += gpWeights[k]*gpPoints1[k]*gpPoints2[k][i]*Jdet[k];
+		}
+	}
+};
+
+void mesh_periodic::load_vector(Vec &load, double (*f)(double, double, int, void*), void* ctx){
+ 	VecCreate(PETSC_COMM_SELF, &load);
+	VecSetSizes(load, PETSC_DECIDE, 2*num_node_Q1isoQ2+num_node_Q1);
+	if (level > 7){
+		VecSetType(load, VECSEQCUDA);
+	} else {
+		VecSetType(load, VECSEQ);
+	}
+
+	double v_elementx[4];
+	double v_elementy[4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		load_vector_element(element_points[0], element_points[1], v_elementx, 0, f, ctx);
+		load_vector_element(element_points[0], element_points[1], v_elementy, 1, f, ctx);
+		for (int k = 0; k < 4; k++){
+			VecSetValue(load, PBC_Q1isoQ2_idx[quadrilaterals[k][i]], v_elementx[k], ADD_VALUES);
+			VecSetValue(load, num_node_Q1isoQ2+PBC_Q1isoQ2_idx[quadrilaterals[k][i]], v_elementy[k], ADD_VALUES);
+		}
+	}
+
+	VecAssemblyBegin(load);
+	VecAssemblyEnd(load);
+};
+
+void mesh_periodic::interpolate(Vec &load, Vec &interpolation){
+	MatCreate(PETSC_COMM_SELF, &zeroMatrix);
+	MatSetSizes(zeroMatrix, PETSC_DECIDE, PETSC_DECIDE, num_node_Q1, num_node_Q1);
+	if (level > 7){
+		MatSetType(zeroMatrix, MATSEQAIJCUSPARSE);
+	} else {
+		MatSetType(zeroMatrix, MATSEQAIJ);
+	}
+	MatSeqAIJSetPreallocation(zeroMatrix, 12, NULL);
+	MatMPIAIJSetPreallocation(zeroMatrix, 12, NULL, 12, NULL);
+	for (int i = 0; i < num_node_Q1; ++i){
+		MatSetValue(zeroMatrix, i, i, 0, INSERT_VALUES);
+	}
+	MatAssemblyBegin(zeroMatrix, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(zeroMatrix, MAT_FINAL_ASSEMBLY);
+
+	Mat workspaceM;
+	Mat massfunction[] = {M, NULL, NULL, NULL, M, NULL, NULL, NULL, zeroMatrix};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, massfunction, &workspaceM);	
+
+	KSP InterpolationOperator;
+	PC  InterpolationPC;
+	KSPCreate(PETSC_COMM_WORLD, &InterpolationOperator);
+	KSPSetType(InterpolationOperator, KSPGMRES);
+	KSPSetOperators(InterpolationOperator, workspaceM, workspaceM);
+	KSPSetTolerances(InterpolationOperator, 1e-8, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
+	KSPGetPC(InterpolationOperator, &InterpolationPC);
+	PCSetType(InterpolationPC, PCBJACOBI);
+
+	KSPSolve(InterpolationOperator, load, interpolation);
+	MatDestroy(&workspaceM);
+	KSPDestroy(&InterpolationOperator);
+};
+
+PetscErrorCode MyKSPMonitor(KSP ksp, PetscInt n, PetscReal rnorm, void *ctx)
+{
+	PetscPrintf(PETSC_COMM_SELF, "iteration %D KSP Residual norm %14.12e \n", n, rnorm);
+	return 0;
+}
+
+PetscErrorCode MySNESMonitor(SNES snes, PetscInt n, PetscReal fnorm, void *ctx)
+{
+	PetscPrintf(PETSC_COMM_WORLD,"iter = %D, SNES Function norm %g\n", n, (double)fnorm);
+	return 0;	
+}
+
+class stokesSolver {
+private:
+	std::unique_ptr<std::unique_ptr<double[]>[]> points;
+	std::unique_ptr<std::unique_ptr<int[]>[]> quadrilaterals;
+	std::unique_ptr<int[]> Q1_idx;
+	std::unique_ptr<int[]> mesh_idx;
+	std::unique_ptr<int[]> PBC_Q1isoQ2_idx;
+	std::unique_ptr<int[]> PBC_Q1_idx;
+	std::unique_ptr<int[]> bs;
+
+	Mat massMatrix;
+	Mat M;
+	Mat A;
+	Mat tauA11;
+	Mat tauA22;
+	Mat tauA12;
+	Mat tauA21;
+	Mat C;
+	Mat G;
+	Mat S1;
+	Mat S2;
+	Mat S1Cond;
+	Mat S2Cond;
+	Mat B1;
+	Mat B2;	
+	Mat B1Cond;
+	Mat B2Cond;
+	Mat B1CondT;
+	Mat B2CondT;
+	Mat D;
+	Mat SUt;
+	Mat SUnt11;
+	Mat SUnt12;
+	Mat SUnt21;
+	Mat SUnt22;
+
+	Mat KM;
+	Mat KC11;
+	Mat KC12;
+	Mat KC21;
+	Mat KC22;
+	Mat KF11;
+	Mat KF12;
+	Mat KF21;
+	Mat KF22;
+	Mat KB1Cond;
+	Mat KB2Cond;
+	Mat KB1CondT;
+	Mat KB2CondT;
+	Mat KA;
+	Mat KS11;
+	Mat KS12;
+	Mat KS21;
+	Mat KS22;
+	Mat KSB1T;
+	Mat KSB2T;
+	Mat KSB1CondT;
+	Mat KSB2CondT;
+	Mat KSUt;
+	Mat KSUnt11;
+	Mat KSUnt12;
+	Mat KSUnt21;
+	Mat KSUnt22;
+
+	Mat zeroMatrix;
+	Mat jacobianFixed;
+	Mat forwardOperatorFixed;
+	Mat J;
+	Mat Mfull;	
+
+	IS pIdx;
+
+	SNES   snes;
+	KSP    ksp;
+	PC     pc;
+
+public:
+	Vec r;
+	Vec states;
+	Vec statesP;
+	Vec statesPfull;
+	Vec V;
+	Vec Vstab;
+	Vec rhsF;
+
+	int division0 = 2;
+	int division_Q1isoQ2;
+	int division_Q1;
+	int num_Q1isoQ2_element;
+	int num_Q1_element;
+	int num_node_Q1isoQ2;
+	int num_node_Q1;
+
+	int stabOption = 0;
+	int level;
+	int timeSteps;
+	int num_term;
+	double nu = 1.0;
+	double time = 0.0;
+	double tMax = 1.0;
+	double deltaT;
+	double obs=-0.994214;
+	double noiseVariance;
+	double beta = 1.0;
+	PetscScalar *states_array;
+	std::unique_ptr<double[]> samples;
+	std::unique_ptr<double[]> u1;
+	std::unique_ptr<double[]> u2;
+	std::unique_ptr<double[]> uNorm;
+	std::unique_ptr<double[]> pressure;
+	std::unique_ptr<double[]> tauSUPG;
+	std::unique_ptr<double[]> tauLSIC;
+
+	std::default_random_engine generator;
+	std::normal_distribution<double> normalDistribution{0.0, 1.0};
+    // std::uniform_real_distribution<double> uniformDistribution{-1.0, 1.0};
+
+	stokesSolver(int level_, int num_term_, double noiseVariance_);
+	~stokesSolver(){
+		MatDestroy(&massMatrix);
+		MatDestroy(&M);
+		MatDestroy(&A);
+		MatDestroy(&tauA11);
+		MatDestroy(&tauA22);
+		MatDestroy(&tauA12);
+		MatDestroy(&tauA21);
+		MatDestroy(&B1);
+		MatDestroy(&B2);
+		MatDestroy(&B1Cond);
+		MatDestroy(&B2Cond);
+		MatDestroy(&C);
+		MatDestroy(&C);
+		MatDestroy(&G);
+		MatDestroy(&S1);
+		MatDestroy(&S2);
+		MatDestroy(&D);
+		MatDestroy(&B1CondT);
+		MatDestroy(&B2CondT);
+		MatDestroy(&SUt);
+		MatDestroy(&SUnt11);
+		MatDestroy(&SUnt12);
+		MatDestroy(&SUnt21);
+		MatDestroy(&SUnt22);
+
+		MatDestroy(&KM);
+		MatDestroy(&KC11);
+		MatDestroy(&KC12);
+		MatDestroy(&KC21);
+		MatDestroy(&KC22);
+		MatDestroy(&KF11);
+		MatDestroy(&KF12);
+		MatDestroy(&KF21);
+		MatDestroy(&KF22);
+		MatDestroy(&KB1Cond);
+		MatDestroy(&KB2Cond);
+		MatDestroy(&KB1CondT);
+		MatDestroy(&KB2CondT);
+		MatDestroy(&KA);
+		MatDestroy(&KS11);
+		MatDestroy(&KS12);
+		MatDestroy(&KS21); 
+		MatDestroy(&KS22);
+		MatDestroy(&KSB1T);
+		MatDestroy(&KSB2T);		
+		MatDestroy(&KSB1CondT);
+		MatDestroy(&KSB2CondT);		
+		MatDestroy(&KSUt);
+		MatDestroy(&KSUnt11);
+		MatDestroy(&KSUnt12);
+		MatDestroy(&KSUnt21);
+		MatDestroy(&KSUnt22);
+	
+		MatDestroy(&zeroMatrix);
+		MatDestroy(&jacobianFixed);
+		MatDestroy(&forwardOperatorFixed);
+
+		VecDestroy(&r);
+		VecDestroy(&V);
+		VecDestroy(&Vstab);
+		VecDestroy(&states);	
+		VecDestroy(&statesP);	
+		VecDestroy(&statesPfull);	
+	};
+
+	void mat_init(Mat &xMat, int m, int n);
+	void solver_init();
+
+	void shape_function(double epsilon, double eta, double N[]);
+	void jacobian_matrix(double x1[4], double x2[4], double epsilon, double eta, double J[2][2]);
+	void jacobian_inv(double x1[4], double x2[4], double epsilon, double eta, double J[2][2]);
+	void basis_function(double epsilon, double eta, double N[]);
+	void basis_function_derivative(double dPhi[4][2], double epsilon, double eta);
+	void hat_function_derivative(double dPhi[4][2], double epsilon, double eta, double x1[4], double x2[4]);
+
+	double fsource(double x, double y, int dir);
+	double shape_interpolation(double epsilon, double eta, double x[4]);
+	double jacobian_det(double J[2][2]);
+
+	void mass_matrix_element(double P[][4], double A[][4]);
+	void stiffness_matrix_element(double P[][4], double A[][4]);
+	void b1_matrix_element(double x1[4], double x2[4], double b1[4][4]);
+	void b2_matrix_element(double x1[4], double x2[4], double b2[4][4]);
+	void tauA11_matrix_element(double x1[4], double x2[4], double tauA11[4][4]);
+	void tauA12_matrix_element(double x1[4], double x2[4], double tauA12[4][4]);
+	void tauA21_matrix_element(double x1[4], double x2[4], double tauA21[4][4]);
+	void tauA22_matrix_element(double x1[4], double x2[4], double tauA22[4][4]);
+	void c_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double c[4][4]);
+	void S_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double s_element[4][4], int dir);
+	void ksb1_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ksb1[4][4]);
+	void ksb2_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ksb2[4][4]);
+	void ks11_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks11[4][4]);
+	void ks12_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks12[4][4]);
+	void ks21_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks21[4][4]);
+	void ks22_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks22[4][4]);
+	void kc11_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double kc11[4][4]);
+	void kc12_matrix_element(double x1[4], double x2[4], double ux[4], double kc12[4][4]);
+	void kc21_matrix_element(double x1[4], double x2[4], double uy[4], double kc21[4][4]);
+	void kc22_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double kc22[4][4]);
+	void kf11_matrix_element(double x1[4], double x2[4], double kf11[4][4]);
+	void kf12_matrix_element(double x1[4], double x2[4], double kf12[4][4]);
+	void kf21_matrix_element(double x1[4], double x2[4], double kf21[4][4]);
+	void kf22_matrix_element(double x1[4], double x2[4], double kf22[4][4]);
+	void ksp11_matrix_element(double x1[4], double x2[4], double p[4], double ksp11[4][4]);
+	void ksp12_matrix_element(double x1[4], double x2[4], double p[4], double ksp12[4][4]);
+	void ksp21_matrix_element(double x1[4], double x2[4], double p[4], double ksp21[4][4]);
+	void ksp22_matrix_element(double x1[4], double x2[4], double p[4], double ksp22[4][4]);
+	void G_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double g[4][4]);
+	void SUt_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double sut[4][4]);
+	void SUnt11_matrix_element(double x1[4], double x2[4], double ux[4], double sunt11[4][4]);
+	void SUnt12_matrix_element(double x1[4], double x2[4], double ux[4], double sunt12[4][4]);
+	void SUnt21_matrix_element(double x1[4], double x2[4], double uy[4], double sunt21[4][4]);
+	void SUnt22_matrix_element(double x1[4], double x2[4], double uy[4], double sunt22[4][4]);
+
+
+	void M_matrix();
+	void A_matrix();
+	void tauA_matrix();
+	void B1Cond_matrix();
+	void B2Cond_matrix();
+	void B1TCond_matrix();
+	void B2TCond_matrix();
+	void C_matrix();
+	void D_matrix();
+	void G_matrix();
+	void SB1TCond_matrix();
+	void SB2TCond_matrix();
+	void SUt_matrix();
+	void SUnt11_matrix();
+	void SUnt12_matrix();
+	void SUnt21_matrix();
+	void SUnt22_matrix();
+
+	void KM_matrix();
+	void KA_matrix();
+	void KC11_matrix();
+	void KC12_matrix();
+	void KC21_matrix();
+	void KC22_matrix();
+	void KF11_matrix();
+	void KF12_matrix();
+	void KF21_matrix();
+	void KF22_matrix();
+	void KS11_matrix();
+	void KS12_matrix();
+	void KS21_matrix();
+	void KS22_matrix();
+	void KB1Cond_matrix();
+	void KB2Cond_matrix();
+	void KB1TCond_matrix();
+	void KB2TCond_matrix();
+	void KSB1CondT_matrix();
+	void KSB2CondT_matrix();
+	void KSUt_matrix();
+	void KSUnt11_matrix();
+	void KSUnt12_matrix();
+	void KSUnt21_matrix();
+	void KSUnt22_matrix();
+
+	void tauUpdate();
+	void load_vector_element(double x1[], double x2[], double v[], int dir);
+	void load_vector();
+	void load_vector_element_stab(double x1[], double x2[], double ux[], double uy[], double v[], int dir);
+	void load_vector_stab();
+	void linear_system_setup();
+	void system_update_function();
+	void system_update_jacobian();
+
+	void FormFunction(SNES snes, Vec x, Vec f);
+	void FormJacobian(SNES snes, Vec x, Mat jac, Mat B);
+	void forwardStep();
+	void snes_setup();
+	void updateGeneratorSeed(double seed_);
+	double getValues(double x, double y, int dir);
+	void solve();
+
+	void interpolation_element(double x1[], double x2[], double v[], int dir);
+	void interpolation_vector(Vec interpolation);
+	void interpolate(Vec solutionInterpolation);
+	void H1test();
+
+	static PetscErrorCode FormFunctionStatic(SNES snes, Vec x, Vec f, void *ctx){
+		stokesSolver *ptr = static_cast<stokesSolver*>(ctx);
+		ptr->FormFunction(snes, x, f);
+		return 0;
+	}
+
+	static PetscErrorCode FormJacobianStatic(SNES snes, Vec x, Mat jac, Mat B, void *ctx){
+		stokesSolver *ptr = static_cast<stokesSolver*>(ctx);
+		ptr->FormJacobian(snes, x, jac, B);
+		return 0;
+	}
+
+	static double getValues_static(double x, double y, int dir, void *ctx){
+		double output;
+		stokesSolver *ptr = static_cast<stokesSolver*>(ctx);
+		output = ptr->getValues(x, y, dir);
+		return output;
+	}
+};
+
+stokesSolver::stokesSolver(int level_, int num_term_, double noiseVariance_) : level(level_), num_term(num_term_), noiseVariance(noiseVariance_) {
+	samples = std::make_unique<double[]>(num_term_);
+	timeSteps = std::pow(2, level_+1);
+	deltaT = tMax/timeSteps;
+
+	division_Q1isoQ2 = division0*(std::pow(2, level_+1));
+	division_Q1 = division_Q1isoQ2/2;
+	num_Q1isoQ2_element = division_Q1isoQ2*division_Q1isoQ2;
+	num_Q1_element = 0.25*num_Q1isoQ2_element;
+	num_node_Q1isoQ2 = std::pow(division_Q1isoQ2+1, 2);
+	num_node_Q1 = std::pow(division_Q1isoQ2/2+1, 2);
+
+	points    = std::make_unique<std::unique_ptr<double[]>[]>(2);
+	points[0] = std::make_unique<double[]>(num_node_Q1isoQ2);
+	points[1] = std::make_unique<double[]>(num_node_Q1isoQ2);
+
+	double xCoord = 0;
+	double yCoord = 0;
+	for (int i=0; i<num_node_Q1isoQ2; i++){
+		if (xCoord-1 > 1e-6){
+			xCoord = 0;
+			yCoord += 1.0/division_Q1isoQ2;
+		}
+		points[0][i] = xCoord;
+		points[1][i] = yCoord;
+		xCoord += 1.0/division_Q1isoQ2;
+	}
+
+	quadrilaterals = std::make_unique<std::unique_ptr<int[]>[]>(4);
+	for (int i=0; i<4; i++){
+		quadrilaterals[i] = std::make_unique<int[]>(num_Q1isoQ2_element);
+	}
+	int refDof[4] = {0, 1, division_Q1isoQ2+2, division_Q1isoQ2+1};
+	for (int i=0; i<num_Q1isoQ2_element; i++){
+		quadrilaterals[0][i] = refDof[0];
+		quadrilaterals[1][i] = refDof[1];
+		quadrilaterals[2][i] = refDof[2];
+		quadrilaterals[3][i] = refDof[3];
+
+		if ((refDof[1]+1)%(division_Q1isoQ2+1) == 0){
+			refDof[0] += 2;
+			refDof[1] += 2;
+			refDof[2] += 2;
+			refDof[3] += 2;
+		} else {
+			refDof[0] += 1;
+			refDof[1] += 1;
+			refDof[2] += 1;
+			refDof[3] += 1;
+		}
+	}
+
+	Q1_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		Q1_idx[i] = num_node_Q1isoQ2;
+	}
+
+	int position = 0;
+	int value = 0;
+	for (int i = 0; i < division_Q1isoQ2/2.0+1; i++){
+		position = 2*(division_Q1isoQ2+1)*i;
+		for (int j = 0; j < division_Q1isoQ2/2.0+1; j++){
+			Q1_idx[position] = value;
+			value += 1; 
+			position = position + 2;
+		}
+	}
+
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		if (Q1_idx[i] == num_node_Q1isoQ2){
+			Q1_idx[i] += i;
+		}
+	}
+
+	std::vector<int> mesh_idx_vector(num_node_Q1isoQ2);
+	std::vector<int> mesh_idx_vector2(num_node_Q1isoQ2);
+
+	std::iota(mesh_idx_vector.begin(), mesh_idx_vector.end(), 0);
+	std::iota(mesh_idx_vector2.begin(), mesh_idx_vector2.end(), 0);
+
+	std::stable_sort(mesh_idx_vector.begin(), mesh_idx_vector.end(), [&](int i, int j){return Q1_idx[i] < Q1_idx[j];});
+	std::stable_sort(mesh_idx_vector2.begin(), mesh_idx_vector2.end(), [&](int i, int j){return mesh_idx_vector[i] < mesh_idx_vector[j];});
+	mesh_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		mesh_idx[i] = mesh_idx_vector2[i];
+	}
+
+	//Periodic Boundary Condition Mapping
+	std::vector<int> PBC_Q1isoQ2(num_node_Q1isoQ2);
+	std::vector<int> PBC_Q1(num_node_Q1isoQ2);
+
+	std::iota(PBC_Q1isoQ2.begin(), PBC_Q1isoQ2.end(), 0);
+	for (int i = 0; i < num_node_Q1isoQ2; ++i){
+		PBC_Q1[i] = mesh_idx[i];
+	}
+
+	bs = std::make_unique<int[]>(division_Q1isoQ2*2+1);
+	int b_pos[2] = {division_Q1isoQ2, num_node_Q1isoQ2-1};
+	bs[0] = b_pos[0];
+	bs[1] = b_pos[1];
+	bs[division_Q1isoQ2*2] = num_node_Q1isoQ2-1-division_Q1isoQ2;	 
+	PBC_Q1isoQ2[b_pos[0]] = 0;
+	PBC_Q1isoQ2[b_pos[1]] = 0;
+	PBC_Q1isoQ2[num_node_Q1isoQ2-1-division_Q1isoQ2] = 0;
+	PBC_Q1[b_pos[0]] = mesh_idx[0];
+	PBC_Q1[b_pos[1]] = mesh_idx[0];
+	PBC_Q1[num_node_Q1isoQ2-1-division_Q1isoQ2] = mesh_idx[0];
+	for (int i = 1; i < division_Q1isoQ2;++i){
+		PBC_Q1isoQ2[b_pos[0]+(division_Q1isoQ2+1)*i] = b_pos[0]+(division_Q1isoQ2+1)*i - division_Q1isoQ2;
+		PBC_Q1isoQ2[b_pos[1]-i] = division_Q1isoQ2 - i;
+		PBC_Q1[b_pos[0]+(division_Q1isoQ2+1)*i] = mesh_idx[b_pos[0]+(division_Q1isoQ2+1)*i - division_Q1isoQ2];
+		PBC_Q1[b_pos[1]-i] = mesh_idx[division_Q1isoQ2 - i];
+		bs[2*i] = b_pos[0]+(division_Q1isoQ2+1)*i;
+		bs[2*i+1] = b_pos[1]-i;
+	}
+
+	PBC_Q1isoQ2_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	PBC_Q1_idx = std::make_unique<int[]>(num_node_Q1isoQ2);
+	for (int i = 0; i < num_node_Q1isoQ2; i++){
+		PBC_Q1isoQ2_idx[i] = PBC_Q1isoQ2[i];
+		PBC_Q1_idx[i] = PBC_Q1[i];
+	}	
+
+	solver_init();
+
+	uNorm = std::make_unique<double[]>(num_node_Q1isoQ2);
+	u1    = std::make_unique<double[]>(num_node_Q1isoQ2);
+	u2    = std::make_unique<double[]>(num_node_Q1isoQ2);
+	VecGetArray(states, &states_array);
+	std::copy(states_array, states_array+num_node_Q1isoQ2, u1.get());
+	std::copy(states_array+num_node_Q1isoQ2, states_array+2*num_node_Q1isoQ2, u2.get());
+	VecRestoreArray(states, &states_array);
+	for (int i = 0; i < num_node_Q1isoQ2; ++i){
+		uNorm[i] = sqrt(pow(u1[i], 2)+pow(u1[i], 2));
+	}
+	tauSUPG = std::make_unique<double[]>(num_node_Q1isoQ2);
+	tauLSIC = std::make_unique<double[]>(num_node_Q1isoQ2);
+	tauUpdate();
+
+	linear_system_setup();
+	int idxP[num_node_Q1];
+	for (int i = 0; i < num_node_Q1; ++i){
+		idxP[i] = 2*num_node_Q1isoQ2+i;
+	}
+	ISCreateGeneral(PETSC_COMM_SELF, num_node_Q1, idxP, PETSC_COPY_VALUES, &pIdx);
+	VecGetSubVector(states, pIdx, &statesP);
+	MatMult(D, statesP, statesPfull);
+
+	pressure = std::make_unique<double[]>(num_node_Q1isoQ2);
+	VecGetArray(statesPfull, &states_array);
+	std::copy(states_array, states_array+num_node_Q1isoQ2, pressure.get());
+	VecRestoreArray(statesPfull, &states_array);
+};
+
+void stokesSolver::mat_init(Mat &xMat, int m, int n){
+	MatCreate(PETSC_COMM_SELF, &xMat);
+	MatSetSizes(xMat, PETSC_DECIDE, PETSC_DECIDE, m, n);
+	if (level > 7){
+		MatSetType(xMat, MATSEQAIJCUSPARSE);
+	} else {
+		MatSetType(xMat, MATSEQAIJ);
+	}
+	MatSeqAIJSetPreallocation(xMat, 12, NULL);
+	MatMPIAIJSetPreallocation(xMat, 12, NULL, 12, NULL);
+	int count = std::min(m, n);
+	for (int i = 0; i < count; ++i){
+		MatSetValue(xMat, i, i, 0, INSERT_VALUES);
+	}
+	MatAssemblyBegin(xMat, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(xMat, MAT_FINAL_ASSEMBLY);
+}
+
+void stokesSolver::solver_init(){
+ 	VecCreate(PETSC_COMM_SELF, &states);
+	VecSetSizes(states, PETSC_DECIDE, 2*num_node_Q1isoQ2+num_node_Q1);
+	if (level > 7){
+		VecSetType(states, VECSEQCUDA);
+	} else {
+		VecSetType(states, VECSEQ);
+	}
+	VecSet(states,0.0);
+	VecAssemblyBegin(states);
+	VecAssemblyEnd(states);
+
+	VecDuplicate(states, &r);
+	VecDuplicate(states, &V);
+	VecDuplicate(states, &Vstab);
+	VecDuplicate(states, &rhsF);
+
+ 	VecCreate(PETSC_COMM_SELF, &statesPfull);
+	VecSetSizes(statesPfull, PETSC_DECIDE, num_node_Q1isoQ2);
+	if (level > 7){
+		VecSetType(statesPfull, VECSEQCUDA);
+	} else {
+		VecSetType(statesPfull, VECSEQ);
+	}
+	VecSet(statesPfull, 0.0);
+	VecAssemblyBegin(statesPfull);
+	VecAssemblyEnd(statesPfull);
+
+	mat_init(massMatrix, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(A, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(tauA11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(tauA22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(tauA12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(tauA21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(B1, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(B2, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(SUt, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(SUnt11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(SUnt12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(SUnt21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(SUnt22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+
+	mat_init(D, num_node_Q1isoQ2, num_node_Q1);
+	mat_init(KM, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(C, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(G, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(S1, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(S2, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KC11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KC12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KC21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KC22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KF11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KF12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KF21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KF22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KS11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KS12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KS21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KS22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSB1T, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSB2T, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSUt, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSUnt11, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSUnt12, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSUnt21, num_node_Q1isoQ2, num_node_Q1isoQ2);
+	mat_init(KSUnt22, num_node_Q1isoQ2, num_node_Q1isoQ2);
+
+	mat_init(J,  2*num_node_Q1isoQ2+num_node_Q1,  2*num_node_Q1isoQ2+num_node_Q1);
+	mat_init(zeroMatrix, num_node_Q1, num_node_Q1);
+}
+
+void stokesSolver::updateGeneratorSeed(double seed_){
+	generator.seed(seed_);
+};
+
+// double stokesSolver::fsource(double x, double y, int dir){
+//     double output;
+//     if (dir == 0) {
+// 		output = -std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y) - 2*pow(2.*M_PI, 2)*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*time; //- M_PI*std::sin(4.0*M_PI*x)*pow(time, 2.)); samples[0]*
+//     } else if (dir == 1) {
+//     	output = std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y) + 2*pow(2.*M_PI, 2)*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*time; //- M_PI*std::sin(4.0*M_PI*y)*pow(time, 2.)); samples[0]*
+//     }
+//     return output;
+// }
+
+// double stokesSolver::fsource(double x, double y, int dir){
+//     double output;
+//     if (dir == 0) {
+// 		output = -std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y) - 2*pow(2.*M_PI, 2)*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*time - M_PI*std::sin(4.0*M_PI*x)*pow(time, 2.); //samples[0]*
+//     } else if (dir == 1) {
+//     	output = std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y) + 2*pow(2.*M_PI, 2)*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*time - M_PI*std::sin(4.0*M_PI*y)*pow(time, 2.); //samples[0]*
+//     }
+//     return output;
+// }
+
+
+double stokesSolver::fsource(double x, double y, int dir){
+    double output;
+    if (dir == 0) {
+		output = -std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*exp(time) - 2*pow(2.*M_PI, 2)*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*(exp(time)-1.0);// - M_PI*std::sin(4.0*M_PI*x)*pow(exp(time), 2.); //samples[0]*
+    } else if (dir == 1) {
+    	output = std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*exp(time) + 2*pow(2.*M_PI, 2)*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*(exp(time)-1.0);// - M_PI*std::sin(4.0*M_PI*y)*pow(exp(time), 2.); //samples[0]*
+    }
+    return output;
+}
+
+
+void stokesSolver::shape_function(double epsilon, double eta, double N[]){
+	N[0] = 0.25*(1.0-epsilon)*(1.0-eta);
+	N[1] = 0.25*(1.0+epsilon)*(1.0-eta);
+	N[2] = 0.25*(1.0+epsilon)*(1.0+eta);
+	N[3] = 0.25*(1.0-epsilon)*(1.0+eta);
+};
+
+double stokesSolver::shape_interpolation(double epsilon, double eta, double x[4]){
+	double N[4];
+	double x_interpolated;
+	shape_function(epsilon, eta, N);
+	x_interpolated = N[0]*x[0]+N[1]*x[1]+N[2]*x[2]+N[3]*x[3];
+	return x_interpolated;
+}
+
+void stokesSolver::jacobian_matrix(double x1[4], double x2[4], double eta, double epsilon, double J[2][2]){
+	J[0][0] = 0.25*((eta-1)*x1[0]+(1-eta)*x1[1]+(1+eta)*x1[2]-(1+eta)*x1[3]); 
+	J[0][1] = 0.25*((eta-1)*x2[0]+(1-eta)*x2[1]+(1+eta)*x2[2]-(1+eta)*x2[3]); 
+	J[1][0] = 0.25*((epsilon-1)*x1[0]-(1+epsilon)*x1[1]+(1+epsilon)*x1[2]+(1-epsilon)*x1[3]); 
+	J[1][1] = 0.25*((epsilon-1)*x2[0]-(1+epsilon)*x2[1]+(1+epsilon)*x2[2]+(1-epsilon)*x2[3]); 
+};
+
+double stokesSolver::jacobian_det(double J[2][2]){
+	double detJ = J[1][1]*J[0][0] - J[0][1]*J[1][0];
+	return detJ;
+};
+
+void stokesSolver::jacobian_inv(double x1[4], double x2[4], double epsilon, double eta, double Jinv[2][2]){
+	double J[2][2];
+	jacobian_matrix(x1, x2, epsilon, eta, J);
+	double Jdet = jacobian_det(J);
+	Jinv[0][0] = J[1][1]/Jdet;	
+	Jinv[0][1] =-J[0][1]/Jdet;
+	Jinv[1][0] =-J[1][0]/Jdet;	
+	Jinv[1][1] = J[0][0]/Jdet;
+};
+
+void stokesSolver::basis_function(double epsilon, double eta, double N[]){
+	shape_function(epsilon, eta, N);
+};
+
+void stokesSolver::basis_function_derivative(double basisdPhi[4][2], double epsilon, double eta){
+	basisdPhi[0][0] = -0.25+0.25*eta;	
+	basisdPhi[1][0] = 0.25-0.25*eta;
+	basisdPhi[2][0] = 0.25+0.25*eta;
+	basisdPhi[3][0] = -0.25-0.25*eta;
+	basisdPhi[0][1] = -0.25+0.25*epsilon;	
+	basisdPhi[1][1] = -0.25-0.25*epsilon;
+	basisdPhi[2][1] = 0.25+0.25*epsilon;
+	basisdPhi[3][1] = 0.25-0.25*epsilon;		
+};
+
+void stokesSolver::hat_function_derivative(double dPhi[4][2], double epsilon, double eta, double x1[4], double x2[4]){
+	double basisdPhi[4][2];
+	double Jinv[2][2];
+	basis_function_derivative(basisdPhi, epsilon, eta);
+	jacobian_inv(x1, x2, epsilon, eta, Jinv);
+	for (int i = 0; i < 4; ++i){
+		for (int j = 0; j < 2; ++j){
+			dPhi[i][j] = basisdPhi[i][0]*Jinv[0][j] + basisdPhi[i][1]*Jinv[1][j];
+		}
+	}
+}
+
+void stokesSolver::mass_matrix_element(double P[][4], double A[][4]){
+	double N[4];
+	double J[2][2];
+	double Jdet[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints[4][4];
+	double gpWeights[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			jacobian_matrix(P[0], P[1], refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints[2*i+j][k] = N[k];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			A[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				A[i][j] += gpWeights[k]*gpPoints[k][i]*gpPoints[k][j]*Jdet[k];
+			}
+		}
+	}
+}
+
+void stokesSolver::tauUpdate(){
+	double Pe;
+	for (int i = 0; i < num_node_Q1isoQ2; ++i){
+		Pe = uNorm[i]*1.0/division_Q1isoQ2/2.0/nu;
+		if (Pe < 1){
+			tauSUPG[i] = pow(1.0/division_Q1isoQ2, 2)/12.0/nu;
+		} else {
+			tauSUPG[i] = 1.0/division_Q1isoQ2/2.0/uNorm[i]*(std::cosh(Pe)/std::sinh(Pe)-1.0/Pe);
+		}
+		tauLSIC[i] = uNorm[i]*1.0/division_Q1isoQ2/2.0;
+	}
+}
+
+void stokesSolver::M_matrix(){
+	PetscBool flag;
+	MatAssembled(massMatrix, &flag);
+	if (flag){
+		MatResetPreallocation(massMatrix);
+		MatZeroEntries(massMatrix);
+	}
+	double mass_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		mass_matrix_element(element_points, mass_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(massMatrix, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], mass_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(massMatrix, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(massMatrix, MAT_FINAL_ASSEMBLY);
+	MatDuplicate(massMatrix, MAT_COPY_VALUES, &M);
+	MatScale(M, 1.0/deltaT);
+
+	Mat list[] = {M, NULL, NULL, NULL, M, NULL, NULL, NULL, zeroMatrix};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list, &Mfull);
+}
+
+void stokesSolver::stiffness_matrix_element(double P[][4], double A[][4]){
+	double dPhi[4][2];
+	double J[2][2];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints[4][8];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], P[0], P[1]);
+			jacobian_matrix(P[0], P[1], refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 8; ++k){
+				gpPoints[2*i+j][k] = dPhi[k%4][k/4];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			A[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				A[i][j] += gpWeights[k]*(gpPoints[k][i]*gpPoints[k][j]+gpPoints[k][4+i]*gpPoints[k][4+j])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::A_matrix(){
+	PetscBool flag;
+	MatAssembled(A, &flag);
+	if (flag){
+		MatResetPreallocation(A);
+		MatZeroEntries(A);
+	}
+
+	double stiffness_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		stiffness_matrix_element(element_points, stiffness_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(A, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], nu*stiffness_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::b1_matrix_element(double x1[4], double x2[4], double b1[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			b1[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				b1[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::b2_matrix_element(double x1[4], double x2[4], double b2[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			b2[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				b2[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::B1Cond_matrix(){
+	PetscBool flag;
+	MatAssembled(B1, &flag);
+	if (flag){
+		MatResetPreallocation(B1);
+		MatZeroEntries(B1);
+	}
+
+	double b1_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		b1_matrix_element(element_points[0], element_points[1], b1_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(B1, PBC_Q1_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], b1_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(B1, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(B1, MAT_FINAL_ASSEMBLY);	
+	MatTransposeMatMult(D, B1, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &B1Cond);
+};
+
+void stokesSolver::B2Cond_matrix(){
+	PetscBool flag;
+	MatAssembled(B2, &flag);
+	if (flag){
+		MatResetPreallocation(B2);
+		MatZeroEntries(B2);
+	}
+	double b2_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		b2_matrix_element(element_points[0], element_points[1], b2_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(B2, PBC_Q1_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], b2_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(B2, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(B2, MAT_FINAL_ASSEMBLY);		
+	MatTransposeMatMult(D, B2, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &B2Cond);
+};
+
+void stokesSolver::B1TCond_matrix(){
+	MatTranspose(B1Cond, MAT_INITIAL_MATRIX, &B1CondT);
+}
+
+void stokesSolver::B2TCond_matrix(){
+	MatTranspose(B2Cond, MAT_INITIAL_MATRIX, &B2CondT);	
+}
+
+void stokesSolver::c_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double c[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			c[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				c[i][j] += gpWeights[k]*(gpPoints0x[k]*gpPoints1x[k][j]*gpPoints2[k][i]+gpPoints0y[k]*gpPoints1y[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::C_matrix(){
+	PetscBool flag;
+	MatAssembled(C, &flag);
+	if (flag){
+		MatResetPreallocation(C);
+		MatZeroEntries(C);
+	}
+	double c_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+		}
+		c_matrix_element(element_points[0], element_points[1], ux, uy, c_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(C, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], c_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(C, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(C, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::D_matrix(){
+	PetscBool flag;
+	MatAssembled(D, &flag);
+	if (flag){
+		MatResetPreallocation(D);
+		MatZeroEntries(D);
+	}
+
+	for (int i = 0; i < num_node_Q1; i++){
+		MatSetValue(D, i, i, 1, INSERT_VALUES);
+	}
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		if (Q1_idx[quadrilaterals[0][i]] < num_node_Q1isoQ2){
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[1][i]], PBC_Q1_idx[quadrilaterals[0][i]], 0.5, INSERT_VALUES);
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[3][i]], PBC_Q1_idx[quadrilaterals[0][i]], 0.5, INSERT_VALUES);
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[2][i]], PBC_Q1_idx[quadrilaterals[0][i]], 0.25, INSERT_VALUES);
+		} else if (Q1_idx[quadrilaterals[1][i]] < num_node_Q1isoQ2){
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[2][i]], PBC_Q1_idx[quadrilaterals[1][i]], 0.5, INSERT_VALUES);
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[0][i]], PBC_Q1_idx[quadrilaterals[1][i]], 0.5, INSERT_VALUES);			
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[3][i]], PBC_Q1_idx[quadrilaterals[1][i]], 0.25, INSERT_VALUES);
+		} else if (Q1_idx[quadrilaterals[2][i]] < num_node_Q1isoQ2){
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[3][i]], PBC_Q1_idx[quadrilaterals[2][i]], 0.5, INSERT_VALUES);
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[1][i]], PBC_Q1_idx[quadrilaterals[2][i]], 0.5, INSERT_VALUES);			
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[0][i]], PBC_Q1_idx[quadrilaterals[2][i]], 0.25, INSERT_VALUES);
+		} else if (Q1_idx[quadrilaterals[3][i]] < num_node_Q1isoQ2){
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[0][i]], PBC_Q1_idx[quadrilaterals[3][i]], 0.5, INSERT_VALUES);
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[2][i]], PBC_Q1_idx[quadrilaterals[3][i]], 0.5, INSERT_VALUES);			
+			MatSetValue(D, PBC_Q1_idx[quadrilaterals[1][i]], PBC_Q1_idx[quadrilaterals[3][i]], 0.25, INSERT_VALUES);
+		}
+	}
+	MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::G_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double g[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+			}
+		gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+		gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			g[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				g[i][j] += gpWeights[k]*(gpPoints0x[k]*gpPoints1x[k][j]+gpPoints0y[k]*gpPoints1y[k][j])*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::G_matrix(){
+	PetscBool flag;
+	MatAssembled(G, &flag);
+	if (flag){
+		MatResetPreallocation(G);
+		MatZeroEntries(G);
+	}
+
+	double g_element[4][4];
+	double element_points[2][4];
+	double tau;
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		G_matrix_element(element_points[0], element_points[1], ux, uy, g_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(G, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*g_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(G, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::S_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double s[4][4], int dir){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+			}
+		gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+		gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	if (dir == 0){
+		for (int i = 0; i < 4; i++){
+			for (int j = 0; j < 4; j++){
+				s[i][j] = 0;
+				for (int k = 0; k < 4; k++){
+					s[i][j] += gpWeights[k]*gpPoints1x[k][j]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])*Jdet[k];
+				}
+			}
+		}		
+	} else {
+		for (int i = 0; i < 4; i++){
+			for (int j = 0; j < 4; j++){
+				s[i][j] = 0;
+				for (int k = 0; k < 4; k++){
+					s[i][j] += gpWeights[k]*gpPoints1y[k][j]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])*Jdet[k];
+				}
+			}
+		}			
+	}
+};
+
+void stokesSolver::SB1TCond_matrix(){
+	PetscBool flag;
+	MatAssembled(S1, &flag);
+	if (flag){
+		MatResetPreallocation(S1);
+		MatZeroEntries(S1);
+	}
+
+	double s_element[4][4];
+	double element_points[2][4];
+	double tau;
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		S_matrix_element(element_points[0], element_points[1], ux, uy, s_element, 0);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(S1, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1_idx[quadrilaterals[n][i]], tau*s_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(S1, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(S1, MAT_FINAL_ASSEMBLY);	
+	MatMatMult(S1, D, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S1Cond);
+};
+
+void stokesSolver::SB2TCond_matrix(){
+	PetscBool flag;
+	MatAssembled(S2, &flag);
+	if (flag){
+		MatResetPreallocation(S2);
+		MatZeroEntries(S2);
+	}
+
+	double s_element[4][4];
+	double element_points[2][4];
+	double tau;
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		S_matrix_element(element_points[0], element_points[1], ux, uy, s_element, 1);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(S2, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1_idx[quadrilaterals[n][i]], tau*s_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(S2, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(S2, MAT_FINAL_ASSEMBLY);	
+
+	MatMatMult(S2, D, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S2Cond);
+};
+
+void stokesSolver::tauA11_matrix_element(double x1[4], double x2[4], double tauA11[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][0];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			tauA11[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				tauA11[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::tauA12_matrix_element(double x1[4], double x2[4], double tauA12[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = dPhi[k][0];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			tauA12[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				tauA12[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::tauA21_matrix_element(double x1[4], double x2[4], double tauA21[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = dPhi[k][1];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			tauA21[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				tauA21[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::tauA22_matrix_element(double x1[4], double x2[4], double tauA22[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints1[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[2*i+j][k] = dPhi[k][1];
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			tauA22[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				tauA22[i][j] += gpWeights[k]*(gpPoints1[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+
+void stokesSolver::tauA_matrix(){
+	PetscBool flag;
+	MatAssembled(tauA11, &flag);
+	if (flag){
+		MatResetPreallocation(tauA11);
+		MatZeroEntries(tauA11);
+	}
+	MatAssembled(tauA22, &flag);
+	if (flag){
+		MatResetPreallocation(tauA22);
+		MatZeroEntries(tauA22);
+	}
+	MatAssembled(tauA12, &flag);
+	if (flag){
+		MatResetPreallocation(tauA12);
+		MatZeroEntries(tauA12);
+	}
+	MatAssembled(tauA21, &flag);
+	if (flag){
+		MatResetPreallocation(tauA21);
+		MatZeroEntries(tauA21);
+	}
+
+	double tau;
+	double tauA11_element[4][4];
+	double tauA12_element[4][4];
+	double tauA21_element[4][4];
+	double tauA22_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			tau = std::max(tau, tauLSIC[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		tauA11_matrix_element(element_points[0], element_points[1], tauA11_element);
+		tauA12_matrix_element(element_points[0], element_points[1], tauA12_element);
+		tauA21_matrix_element(element_points[0], element_points[1], tauA21_element);
+		tauA22_matrix_element(element_points[0], element_points[1], tauA22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(tauA11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*tauA11_element[m][n], ADD_VALUES);
+ 				MatSetValue(tauA12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*tauA12_element[m][n], ADD_VALUES);
+ 				MatSetValue(tauA21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*tauA21_element[m][n], ADD_VALUES);
+ 				MatSetValue(tauA22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*tauA22_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(tauA11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(tauA11, MAT_FINAL_ASSEMBLY);
+
+	MatAssemblyBegin(tauA12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(tauA12, MAT_FINAL_ASSEMBLY);
+
+	MatAssemblyBegin(tauA21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(tauA21, MAT_FINAL_ASSEMBLY);
+
+	MatAssemblyBegin(tauA22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(tauA22, MAT_FINAL_ASSEMBLY);
+}
+
+void stokesSolver::load_vector_element(double x1[], double x2[], double v[], int dir){
+	double J[2][2];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints1[25];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+	double Jdet[25];
+	double N[4];
+
+	double x;
+	double y;
+
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			gpPoints1[5*i+j] = fsource(x, y, dir);
+			for (int k = 0; k < 4; ++k){
+				gpPoints2[5*i+j][k] = N[k];
+			}
+		}
+	}
+	for (int i = 0; i < 4; i++){
+		v[i] = 0;
+		for (int k = 0; k < 25; k++){
+			v[i] += gpWeights[k]*gpPoints1[k]*gpPoints2[k][i]*Jdet[k];
+		}
+	}
+};
+
+void stokesSolver::load_vector(){
+	double v_elementx[4];
+	double v_elementy[4];
+	double element_points[2][4];
+	VecZeroEntries(V);
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+		}
+		load_vector_element(element_points[0], element_points[1], v_elementx, 0);
+		load_vector_element(element_points[0], element_points[1], v_elementy, 1);
+		for (int k = 0; k < 4; k++){
+			VecSetValue(V, PBC_Q1isoQ2_idx[quadrilaterals[k][i]], v_elementx[k], ADD_VALUES);
+			VecSetValue(V, num_node_Q1isoQ2+PBC_Q1isoQ2_idx[quadrilaterals[k][i]], v_elementy[k], ADD_VALUES);
+		}
+	}
+	VecAssemblyBegin(V);
+	VecAssemblyEnd(V);
+};
+
+void stokesSolver::load_vector_element_stab(double x1[], double x2[], double ux[], double uy[], double v[], int dir){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints0x[25];
+	double gpPoints0y[25];
+	double gpPoints1[25];
+	double gpPoints2x[25][4];
+	double gpPoints2y[25][4];
+	double gpWeights[25];
+	double Jdet[25];
+
+	double x;
+	double y;
+
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			gpPoints1[5*i+j] = fsource(x, y, dir);
+			for (int k = 0; k < 4; ++k){
+				gpPoints2x[5*i+j][k] = dPhi[k][0];
+				gpPoints2y[5*i+j][k] = dPhi[k][1];
+			}
+			gpPoints0x[5*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[5*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+	for (int i = 0; i < 4; i++){
+		v[i] = 0;
+		for (int k = 0; k < 25; k++){
+			v[i] += gpWeights[k]*gpPoints1[k]*(gpPoints0x[k]*gpPoints2x[k][i]+gpPoints0y[k]*gpPoints2y[k][i])*Jdet[k];
+		}
+	}
+};
+
+void stokesSolver::load_vector_stab(){
+	double vx_element[4];
+	double vy_element[4];
+	double element_points[2][4];
+	double tau;
+	double ux[4];
+	double uy[4];
+	VecSet(Vstab, 0.0);
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		load_vector_element_stab(element_points[0], element_points[1], ux, uy, vx_element, 0);
+		load_vector_element_stab(element_points[0], element_points[1], ux, uy, vy_element, 1);
+		for (int k = 0; k < 4; k++){
+			VecSetValue(Vstab, PBC_Q1isoQ2_idx[quadrilaterals[k][i]], tau*vx_element[k], ADD_VALUES);
+			VecSetValue(Vstab, num_node_Q1isoQ2+PBC_Q1isoQ2_idx[quadrilaterals[k][i]], tau*vy_element[k], ADD_VALUES);
+		}
+	}
+	VecAssemblyBegin(Vstab);
+	VecAssemblyEnd(Vstab);
+};
+
+void stokesSolver::KM_matrix(){
+	MatDuplicate(M, MAT_COPY_VALUES, &KM);
+}
+
+void stokesSolver::KA_matrix(){
+	MatDuplicate(A, MAT_COPY_VALUES, &KA);
+}
+
+void stokesSolver::KB1TCond_matrix(){
+	MatDuplicate(B1CondT, MAT_COPY_VALUES, &KB1CondT);
+};
+
+void stokesSolver::KB2TCond_matrix(){
+	MatDuplicate(B2CondT, MAT_COPY_VALUES, &KB2CondT);
+};
+
+void stokesSolver::KB1Cond_matrix(){
+	MatDuplicate(B1Cond, MAT_COPY_VALUES, &KB1Cond);
+};
+
+void stokesSolver::KB2Cond_matrix(){
+	MatDuplicate(B2Cond, MAT_COPY_VALUES, &KB2Cond);
+};
+
+void stokesSolver::kc11_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double kc11[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][0]*ux[0] + dPhi[1][0]*ux[1] + dPhi[2][0]*ux[2] + dPhi[3][0]*ux[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kc11[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				kc11[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints2[k][i]+gpPoints0x[k]*gpPoints1x[k][j]*gpPoints2[k][i]+gpPoints0y[k]*gpPoints1y[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kc12_matrix_element(double x1[4], double x2[4], double ux[4], double kc12[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][1]*ux[0] + dPhi[1][1]*ux[1] + dPhi[2][1]*ux[2] + dPhi[3][1]*ux[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kc12[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				kc12[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kc21_matrix_element(double x1[4], double x2[4], double uy[4], double kc21[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][0]*uy[0] + dPhi[1][0]*uy[1] + dPhi[2][0]*uy[2] + dPhi[3][0]*uy[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kc21[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				kc21[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kc22_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double kc22[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][1]*uy[0] + dPhi[1][1]*uy[1] + dPhi[2][1]*uy[2] + dPhi[3][1]*uy[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kc22[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				kc22[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints2[k][i]+gpPoints0x[k]*gpPoints1x[k][j]*gpPoints2[k][i]+gpPoints0y[k]*gpPoints1y[k][j]*gpPoints2[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::KC11_matrix(){
+	PetscBool flag;
+	MatAssembled(KC11, &flag);
+	if (flag){
+		MatResetPreallocation(KC11);
+		MatZeroEntries(KC11);
+	}
+
+	double kc11_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+		}
+		kc11_matrix_element(element_points[0], element_points[1], ux, uy, kc11_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KC11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], kc11_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KC11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KC11, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KC12_matrix(){
+	PetscBool flag;
+	MatAssembled(KC12, &flag);
+	if (flag){
+		MatResetPreallocation(KC12);
+		MatZeroEntries(KC12);
+	}
+
+	double kc12_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+		}
+		kc12_matrix_element(element_points[0], element_points[1], ux, kc12_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KC12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], kc12_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+
+	MatAssemblyBegin(KC12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KC12, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KC21_matrix(){
+	PetscBool flag;
+	MatAssembled(KC21, &flag);
+	if (flag){
+		MatResetPreallocation(KC21);
+		MatZeroEntries(KC21);
+	}
+
+	double kc21_element[4][4];
+	double element_points[2][4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+		}
+		kc21_matrix_element(element_points[0], element_points[1], uy, kc21_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KC21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], kc21_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+
+	MatAssemblyBegin(KC21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KC21, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KC22_matrix(){
+	PetscBool flag;
+	MatAssembled(KC22, &flag);
+	if (flag){
+		MatResetPreallocation(KC22);
+		MatZeroEntries(KC22);
+	}
+
+	double kc22_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+		}
+		kc22_matrix_element(element_points[0], element_points[1], ux, uy, kc22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KC22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], kc22_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+
+	MatAssemblyBegin(KC22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KC22, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::kf11_matrix_element(double x1[4], double x2[4], double kf11[4][4]){
+	double J[2][2];
+	double Jdet[25];
+	double dPhi[4][2];
+	double N[4];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints0[25];
+	double gpPoints1[25][4];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+
+	double x, y;
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[5*i+j][k] = dPhi[k][0];
+				gpPoints2[5*i+j][k] = N[k];
+			}
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);  
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpPoints0[5*i+j] = fsource(x, y, 0);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kf11[i][j] = 0;
+			for (int k = 0; k < 25; k++){
+				kf11[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kf12_matrix_element(double x1[4], double x2[4], double kf12[4][4]){
+	double J[2][2];
+	double Jdet[25];
+	double dPhi[4][2];
+	double N[4];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints0[25];
+	double gpPoints1[25][4];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+
+	double x, y;
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[5*i+j][k] = dPhi[k][1];
+				gpPoints2[5*i+j][k] = N[k];
+			}
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);  
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpPoints0[5*i+j] = fsource(x, y, 0);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kf12[i][j] = 0;
+			for (int k = 0; k < 25; k++){
+				kf12[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kf21_matrix_element(double x1[4], double x2[4], double kf21[4][4]){
+	double J[2][2];
+	double Jdet[25];
+	double dPhi[4][2];
+	double N[4];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints0[25];
+	double gpPoints1[25][4];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+
+	double x, y;
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[5*i+j][k] = dPhi[k][0];
+				gpPoints2[5*i+j][k] = N[k];
+			}
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);  
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpPoints0[5*i+j] = fsource(x, y, 1);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kf21[i][j] = 0;
+			for (int k = 0; k < 25; k++){
+				kf21[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::kf22_matrix_element(double x1[4], double x2[4], double kf22[4][4]){
+	double J[2][2];
+	double Jdet[25];
+	double dPhi[4][2];
+	double N[4];
+
+	double refPoints[5];
+	double refWeights[5];
+
+	refPoints[0] = -1./3.*sqrt(5.+2.*sqrt(10./7.));
+	refPoints[1] = -1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[2] = 0.;
+	refPoints[3] = 1./3.*sqrt(5.-2.*sqrt(10./7.));
+	refPoints[4] = 1./3.*sqrt(5.+2.*sqrt(10./7.));
+
+	refWeights[0] = (322.-13.*sqrt(70.))/900.;
+	refWeights[1] = (322.+13.*sqrt(70.))/900.;
+	refWeights[2] = 128./225.;
+	refWeights[3] = (322.+13.*sqrt(70.))/900.;
+	refWeights[4] = (322.-13.*sqrt(70.))/900.;
+
+	double gpPoints0[25];
+	double gpPoints1[25][4];
+	double gpPoints2[25][4];
+	double gpWeights[25];
+
+	double x, y;
+	for (int i = 0; i < 5; i++){
+		for (int j = 0; j < 5; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[5*i+j] = refWeights[i]*refWeights[j];
+			Jdet[5*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1[5*i+j][k] = dPhi[k][1];
+				gpPoints2[5*i+j][k] = N[k];
+			}
+			x = shape_interpolation(refPoints[i], refPoints[j], x1);  
+			y = shape_interpolation(refPoints[i], refPoints[j], x2);
+			gpPoints0[5*i+j] = fsource(x, y, 1);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			kf22[i][j] = 0;
+			for (int k = 0; k < 25; k++){
+				kf22[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::KF11_matrix(){
+	PetscBool flag;
+	MatAssembled(KF11, &flag);
+	if (flag){
+		MatResetPreallocation(KF11);
+		MatZeroEntries(KF11);
+	}
+	double kf11_element[4][4];
+	double element_points[2][4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		kf11_matrix_element(element_points[0], element_points[1], kf11_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KF11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*kf11_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+
+	MatAssemblyBegin(KF11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KF11, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KF12_matrix(){
+	PetscBool flag;
+	MatAssembled(KF12, &flag);
+	if (flag){
+		MatResetPreallocation(KF12);
+		MatZeroEntries(KF12);
+	}
+	double tau;
+	double kf12_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		kf12_matrix_element(element_points[0], element_points[1], kf12_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KF12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*kf12_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+
+	MatAssemblyBegin(KF12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KF12, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KF21_matrix(){
+	PetscBool flag;
+	MatAssembled(KF21, &flag);
+	if (flag){
+		MatResetPreallocation(KF21);
+		MatZeroEntries(KF21);
+	}
+	double kf21_element[4][4];
+	double element_points[2][4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		kf21_matrix_element(element_points[0], element_points[1], kf21_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KF21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*kf21_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KF21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KF21, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KF22_matrix(){
+	PetscBool flag;
+	MatAssembled(KF22, &flag);
+	if (flag){
+		MatResetPreallocation(KF22);
+		MatZeroEntries(KF22);
+	}
+	double kf22_element[4][4];
+	double element_points[2][4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);		
+		}
+		kf22_matrix_element(element_points[0], element_points[1], kf22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KF22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*kf22_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KF22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KF22, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::ksp11_matrix_element(double x1[4], double x2[4], double p[4], double ksp11[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints1x[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][0]*p[0] + dPhi[1][0]*p[1] + dPhi[2][0]*p[2] + dPhi[3][0]*p[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksp11[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksp11[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1x[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ksp12_matrix_element(double x1[4], double x2[4], double p[4], double ksp12[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][0]*p[0] + dPhi[1][0]*p[1] + dPhi[2][0]*p[2] + dPhi[3][0]*p[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksp12[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksp12[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ksp21_matrix_element(double x1[4], double x2[4], double p[4], double ksp21[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints1x[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][1]*p[0] + dPhi[1][1]*p[1] + dPhi[2][1]*p[2] + dPhi[3][1]*p[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksp21[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksp21[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1x[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ksp22_matrix_element(double x1[4], double x2[4], double p[4], double ksp22[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0[4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0[2*i+j] = dPhi[0][1]*p[0] + dPhi[1][1]*p[1] + dPhi[2][1]*p[2] + dPhi[3][1]*p[3];
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksp22[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksp22[i][j] += gpWeights[k]*(gpPoints0[k]*gpPoints2[k][j]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ks11_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks11[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPointsx[4];
+	double gpPointsy[4];
+
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPointsx[2*i+j] = dPhi[0][0]*ux[0] + dPhi[1][0]*ux[1] + dPhi[2][0]*ux[2] + dPhi[3][0]*ux[3];
+			gpPointsy[2*i+j] = dPhi[0][1]*ux[0] + dPhi[1][1]*ux[1] + dPhi[2][1]*ux[2] + dPhi[3][1]*ux[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ks11[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ks11[i][j] += gpWeights[k]*(gpPoints2[k][j]*gpPointsx[k]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPoints1x[k][j]+gpPoints0y[k]*gpPoints1y[k][j])*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPointsx[k]+gpPoints0y[k]*gpPointsy[k])*gpPoints2[k][j]*gpPoints1x[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ks12_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks12[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPointsx[4];
+	double gpPointsy[4];
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPointsx[2*i+j] = dPhi[0][0]*ux[0] + dPhi[1][0]*ux[1] + dPhi[2][0]*ux[2] + dPhi[3][0]*ux[3];
+			gpPointsy[2*i+j] = dPhi[0][1]*ux[0] + dPhi[1][1]*ux[1] + dPhi[2][1]*ux[2] + dPhi[3][1]*ux[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ks12[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ks12[i][j] += gpWeights[k]*(gpPoints2[k][j]*gpPointsy[k]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPointsx[k]+gpPoints0y[k]*gpPointsy[k])*gpPoints2[k][j]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ks21_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks21[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPointsx[4];
+	double gpPointsy[4];
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPointsx[2*i+j] = dPhi[0][0]*uy[0] + dPhi[1][0]*uy[1] + dPhi[2][0]*uy[2] + dPhi[3][0]*uy[3];
+			gpPointsy[2*i+j] = dPhi[0][1]*uy[0] + dPhi[1][1]*uy[1] + dPhi[2][1]*uy[2] + dPhi[3][1]*uy[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ks21[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ks21[i][j] += gpWeights[k]*(gpPoints2[k][j]*gpPointsx[k]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPointsx[k]+gpPoints0y[k]*gpPointsy[k])*gpPoints2[k][j]*gpPoints1x[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ks22_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ks22[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPointsx[4];
+	double gpPointsy[4];
+
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPointsx[2*i+j] = dPhi[0][0]*uy[0] + dPhi[1][0]*uy[1] + dPhi[2][0]*uy[2] + dPhi[3][0]*uy[3];
+			gpPointsy[2*i+j] = dPhi[0][1]*uy[0] + dPhi[1][1]*uy[1] + dPhi[2][1]*uy[2] + dPhi[3][1]*uy[3];
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ks22[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ks22[i][j] += gpWeights[k]*(gpPoints2[k][j]*gpPointsy[k]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPoints1x[k][j]+gpPoints0y[k]*gpPoints1y[k][j])*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])+(gpPoints0x[k]*gpPointsx[k]+gpPoints0y[k]*gpPointsy[k])*gpPoints2[k][j]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::KS11_matrix(){
+	PetscBool flag;
+	MatAssembled(KS11, &flag);
+	if (flag){
+		MatResetPreallocation(KS11);
+		MatZeroEntries(KS11);
+	}
+	double ks11_element[4][4];
+	double ksp11_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	double p[4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			p[j] = pressure[PBC_Q1_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ks11_matrix_element(element_points[0], element_points[1], ux, uy, ks11_element);
+		ksp11_matrix_element(element_points[0], element_points[1], p, ksp11_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KS11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*(ks11_element[m][n]+ksp11_element[m][n]), ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KS11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KS11, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KS12_matrix(){
+	PetscBool flag;
+	MatAssembled(KS12, &flag);
+	if (flag){
+		MatResetPreallocation(KS12);
+		MatZeroEntries(KS12);
+	}
+
+	double ks12_element[4][4];
+	double ksp12_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	double p[4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			p[j] = pressure[PBC_Q1_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ks12_matrix_element(element_points[0], element_points[1], ux, uy, ks12_element);
+		ksp12_matrix_element(element_points[0], element_points[1], p, ksp12_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KS12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*(ks12_element[m][n]+ksp12_element[m][n]), ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KS12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KS12, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KS21_matrix(){
+	PetscBool flag;
+	MatAssembled(KS21, &flag);
+	if (flag){
+		MatResetPreallocation(KS21);
+		MatZeroEntries(KS21);
+	}
+
+	double ks21_element[4][4];
+	double ksp21_element[4][4];
+	double element_points[2][4];
+	double p[4];
+	double ux[4];
+	double uy[4];
+	double tau;
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;	
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			p[j] = pressure[PBC_Q1_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ks21_matrix_element(element_points[0], element_points[1], ux, uy, ks21_element);
+		ksp21_matrix_element(element_points[0], element_points[1], p, ksp21_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KS21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*(ks21_element[m][n]+ksp21_element[m][n]), ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KS21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KS21, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::KS22_matrix(){
+	PetscBool flag;
+	MatAssembled(KS22, &flag);
+	if (flag){
+		MatResetPreallocation(KS22);
+		MatZeroEntries(KS22);
+	}
+
+	double ks22_element[4][4];
+	double ksp22_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	double p[4];
+	double tau;
+
+	// derivative term from (u \grad u, u \grad w)	//(\nabla p, w \grad w) from stabilization term (p, u \grad w) 
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			p[j] = pressure[PBC_Q1_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ks22_matrix_element(element_points[0], element_points[1], ux, uy, ks22_element);
+		ksp22_matrix_element(element_points[0], element_points[1], p, ksp22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KS22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau*(ks22_element[m][n]+ksp22_element[m][n]), ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KS22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KS22, MAT_FINAL_ASSEMBLY);	
+};
+
+void stokesSolver::ksb1_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ksb1[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksb1[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksb1[i][j] += gpWeights[k]*(gpPoints1x[k][j]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i]))*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::ksb2_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double ksb2[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			ksb2[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				ksb2[i][j] += gpWeights[k]*(gpPoints1y[k][j]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i]))*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::KSB1CondT_matrix(){
+	PetscBool flag = PETSC_TRUE;
+	MatAssembled(KSB1T, &flag);
+	if (flag){
+		MatResetPreallocation(KSB1T);
+		MatZeroEntries(KSB1T);
+	}
+
+	double tau;
+	double ux[4];
+	double uy[4];
+	double ksb1_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ksb1_matrix_element(element_points[0], element_points[1], ux, uy, ksb1_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KSB1T, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1_idx[quadrilaterals[n][i]], tau*ksb1_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KSB1T, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSB1T, MAT_FINAL_ASSEMBLY);		
+	MatMatMult(KSB1T, D, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &KSB1CondT);
+}
+
+void stokesSolver::KSB2CondT_matrix(){
+	PetscBool flag;
+	MatAssembled(KSB2T, &flag);
+	if (flag){
+		MatResetPreallocation(KSB2T);
+		MatZeroEntries(KSB2T);
+	}
+	double tau;
+	double ux[4];
+	double uy[4];
+	double ksb2_element[4][4];
+	double element_points[2][4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		ksb2_matrix_element(element_points[0], element_points[1], ux, uy, ksb2_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+				MatSetValue(KSB2T, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1_idx[quadrilaterals[n][i]], tau*ksb2_element[m][n], ADD_VALUES);
+			}
+		}
+	}
+	MatAssemblyBegin(KSB2T, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSB2T, MAT_FINAL_ASSEMBLY);		
+	MatMatMult(KSB2T, D, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &KSB2CondT);	
+}
+
+void stokesSolver::SUt_matrix_element(double x1[4], double x2[4], double ux[4], double uy[4], double sut[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			sut[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				sut[i][j] += gpWeights[k]*gpPoints2[k][j]*(gpPoints0x[k]*gpPoints1x[k][i]+gpPoints0y[k]*gpPoints1y[k][i])*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::SUnt11_matrix_element(double x1[4], double x2[4], double ux[4], double sunt11[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints1x[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			sunt11[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				sunt11[i][j] += gpWeights[k]*gpPoints0x[k]*gpPoints2[k][j]*gpPoints1x[k][i]*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::SUnt12_matrix_element(double x1[4], double x2[4], double ux[4], double sunt12[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0x[4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0x[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], ux);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			sunt12[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				sunt12[i][j] += gpWeights[k]*gpPoints0x[k]*gpPoints2[k][j]*gpPoints1y[k][i]*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::SUnt21_matrix_element(double x1[4], double x2[4], double uy[4], double sunt21[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0y[4];
+	double gpPoints1x[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1x[2*i+j][k] = dPhi[k][0];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			sunt21[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				sunt21[i][j] += gpWeights[k]*gpPoints0y[k]*gpPoints2[k][j]*gpPoints1x[k][i]*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::SUnt22_matrix_element(double x1[4], double x2[4], double uy[4], double sunt22[4][4]){
+	double dPhi[4][2];
+	double J[2][2];
+	double N[4];
+
+	double refPoints[2];
+	double refWeights[2];
+
+	refPoints[0] = -1./sqrt(3.0);
+	refPoints[1] =  1./sqrt(3.0);
+
+	refWeights[0] = 1.0;
+	refWeights[1] = 1.0;
+
+	double gpPoints0y[4];
+	double gpPoints1y[4][4];
+	double gpPoints2[4][4];
+
+	double gpWeights[4];
+	double Jdet[4];
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < 2; j++){
+			basis_function(refPoints[i], refPoints[j], N);
+			hat_function_derivative(dPhi, refPoints[i], refPoints[j], x1, x2);
+			jacobian_matrix(x1, x2, refPoints[i], refPoints[j], J);
+			gpWeights[2*i+j] = refWeights[i]*refWeights[j];
+			Jdet[2*i+j] = jacobian_det(J);
+			for (int k = 0; k < 4; ++k){
+				gpPoints1y[2*i+j][k] = dPhi[k][1];
+				gpPoints2[2*i+j][k] = N[k];
+			}
+			gpPoints0y[2*i+j] = shape_interpolation(refPoints[i], refPoints[j], uy);
+		}
+	}
+
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
+			sunt22[i][j] = 0;
+			for (int k = 0; k < 4; k++){
+				sunt22[i][j] += gpWeights[k]*gpPoints0y[k]*gpPoints2[k][j]*gpPoints1y[k][i]*Jdet[k];
+			}
+		}
+	}
+};
+
+void stokesSolver::SUt_matrix(){
+	PetscBool flag;
+	MatAssembled(SUt, &flag);
+	if (flag){
+		MatResetPreallocation(SUt);
+		MatZeroEntries(SUt);
+	}
+	double tau;
+	double SUt_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUt_matrix_element(element_points[0], element_points[1], ux, uy, SUt_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(SUt, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUt_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(SUt, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(SUt, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KSUt_matrix(){
+	PetscBool flag;
+	MatAssembled(KSUt, &flag);
+	if (flag){
+		MatResetPreallocation(KSUt);
+		MatZeroEntries(KSUt);
+	}
+	double tau;
+	double SUt_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUt_matrix_element(element_points[0], element_points[1], ux, uy, SUt_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(KSUt, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUt_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(KSUt, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSUt, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::SUnt11_matrix(){
+	PetscBool flag;
+	MatAssembled(SUnt11, &flag);
+	if (flag){
+		MatResetPreallocation(SUnt11);
+		MatZeroEntries(SUnt11);
+	}
+	double tau;
+	double SUnt11_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt11_matrix_element(element_points[0], element_points[1], ux, SUnt11_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(SUnt11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt11_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(SUnt11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(SUnt11, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::SUnt12_matrix(){
+	PetscBool flag;
+	MatAssembled(SUnt12, &flag);
+	if (flag){
+		MatResetPreallocation(SUnt12);
+		MatZeroEntries(SUnt12);
+	}
+	double tau;
+	double SUnt12_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt12_matrix_element(element_points[0], element_points[1], ux, SUnt12_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(SUnt12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt12_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(SUnt12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(SUnt12, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::SUnt21_matrix(){
+	PetscBool flag;
+	MatAssembled(SUnt21, &flag);
+	if (flag){
+		MatResetPreallocation(SUnt21);
+		MatZeroEntries(SUnt21);
+	}
+	double tau;
+	double SUnt21_element[4][4];
+	double element_points[2][4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt21_matrix_element(element_points[0], element_points[1], uy, SUnt21_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(SUnt21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt21_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(SUnt21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(SUnt21, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::SUnt22_matrix(){
+	PetscBool flag;
+	MatAssembled(SUnt22, &flag);
+	if (flag){
+		MatResetPreallocation(SUnt22);
+		MatZeroEntries(SUnt22);
+	}
+	double tau;
+	double SUnt22_element[4][4];
+	double element_points[2][4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt22_matrix_element(element_points[0], element_points[1], uy, SUnt22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(SUnt22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt22_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(SUnt22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(SUnt22, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KSUnt11_matrix(){
+	PetscBool flag;
+	MatAssembled(KSUnt11, &flag);
+	if (flag){
+		MatResetPreallocation(KSUnt11);
+		MatZeroEntries(KSUnt11);
+	}
+	double tau;
+	double SUnt11_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt11_matrix_element(element_points[0], element_points[1], ux, SUnt11_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(KSUnt11, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt11_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(KSUnt11, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSUnt11, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KSUnt12_matrix(){
+	PetscBool flag;
+	MatAssembled(KSUnt12, &flag);
+	if (flag){
+		MatResetPreallocation(KSUnt12);
+		MatZeroEntries(KSUnt12);
+	}
+	double tau;
+	double SUnt12_element[4][4];
+	double element_points[2][4];
+	double ux[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			ux[j] = u1[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt12_matrix_element(element_points[0], element_points[1], ux, SUnt12_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(KSUnt12, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt12_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(KSUnt12, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSUnt12, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KSUnt21_matrix(){
+	PetscBool flag;
+	MatAssembled(KSUnt21, &flag);
+	if (flag){
+		MatResetPreallocation(KSUnt21);
+		MatZeroEntries(KSUnt21);
+	}
+	double tau;
+	double SUnt21_element[4][4];
+	double element_points[2][4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt21_matrix_element(element_points[0], element_points[1], uy, SUnt21_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(KSUnt21, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt21_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(KSUnt21, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSUnt21, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::KSUnt22_matrix(){
+	PetscBool flag;
+	MatAssembled(KSUnt22, &flag);
+	if (flag){
+		MatResetPreallocation(KSUnt22);
+		MatZeroEntries(KSUnt22);
+	}
+	double tau;
+	double SUnt22_element[4][4];
+	double element_points[2][4];
+	double uy[4];
+	for (int i = 0; i < num_Q1isoQ2_element; i++){
+		tau = 0;
+		for (int j = 0; j < 4; j++){
+			element_points[0][j] = points[0][quadrilaterals[j][i]];
+			element_points[1][j] = points[1][quadrilaterals[j][i]];
+			uy[j] = u2[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]];
+			tau = std::max(tau, tauSUPG[PBC_Q1isoQ2_idx[quadrilaterals[j][i]]]);
+		}
+		SUnt22_matrix_element(element_points[0], element_points[1], uy, SUnt22_element);
+		for (int m = 0; m < 4; m++){
+			for (int n = 0; n < 4; n++){
+ 				MatSetValue(KSUnt22, PBC_Q1isoQ2_idx[quadrilaterals[m][i]], PBC_Q1isoQ2_idx[quadrilaterals[n][i]], tau/deltaT*SUnt22_element[m][n], ADD_VALUES);
+			}
+		}			
+	}
+	MatAssemblyBegin(KSUnt22, MAT_FINAL_ASSEMBLY);
+	MatAssemblyEnd(KSUnt22, MAT_FINAL_ASSEMBLY);
+};
+
+void stokesSolver::linear_system_setup(){
+	M_matrix();
+	A_matrix();
+	D_matrix();
+	B1Cond_matrix();
+	B2Cond_matrix();
+	B1TCond_matrix();
+	B2TCond_matrix();
+	SUnt11_matrix();
+	SUnt12_matrix();
+	SUnt21_matrix();	
+	SUnt22_matrix();
+
+	KM_matrix();
+	KA_matrix();
+	KB1Cond_matrix();
+	KB2Cond_matrix();
+	KB1TCond_matrix();
+	KB2TCond_matrix();
+
+	MatAXPY(A, 1.0, M, DIFFERENT_NONZERO_PATTERN);
+	Mat listFunction[] = {A, NULL, B1CondT, NULL, A, B2CondT, B1Cond, B2Cond, NULL};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, listFunction, &forwardOperatorFixed);
+
+	MatAXPY(KA, 1.0, KM, DIFFERENT_NONZERO_PATTERN);
+	Mat listJacobian[]  = {KA, NULL, KB1CondT, NULL, KA, KB2CondT, KB1Cond, KB2Cond, NULL};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, listJacobian, &jacobianFixed);
+}
+
+void stokesSolver::system_update_function(){
+	std::clock_t c_start = std::clock();
+	auto wcts = std::chrono::system_clock::now();
+	C_matrix();
+
+	if (stabOption == 1){
+		tauA_matrix();
+		G_matrix();
+		SB1TCond_matrix();
+		SB2TCond_matrix();
+		SUt_matrix();
+		SUnt11_matrix();
+		SUnt12_matrix();
+		SUnt21_matrix();	
+		SUnt22_matrix();		
+	}
+	std::clock_t c_end = std::clock();
+	double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
+	std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
+
+	std::cout << "udpate c matrix wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;
+}
+
+void stokesSolver::system_update_jacobian(){
+	std::clock_t c_start = std::clock();
+	auto wcts = std::chrono::system_clock::now();
+	KC11_matrix();
+	KC12_matrix();
+	KC21_matrix();
+	KC22_matrix();
+
+	if (stabOption == 1){
+		KS11_matrix();
+		KS12_matrix();
+		KS21_matrix();
+		KS22_matrix();
+		KSB1CondT_matrix();
+		KSB2CondT_matrix();
+
+		KF11_matrix();
+		KF12_matrix();
+		KF21_matrix();
+		KF22_matrix();
+
+		KSUt_matrix();
+
+		SUnt11_matrix();
+		SUnt12_matrix();
+		SUnt21_matrix();	
+		SUnt22_matrix();
+
+		KSUnt11_matrix();
+		KSUnt12_matrix();
+		KSUnt21_matrix();
+		KSUnt22_matrix();	
+	}
+	std::clock_t c_end = std::clock();
+	double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
+	std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
+
+	std::cout << "udpate jacobian wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;
+}
+
+void stokesSolver::FormFunction(SNES snes, Vec x, Vec f){
+	const double *xx;
+	VecGetArrayRead(x, &xx);
+	std::copy(xx, xx+num_node_Q1isoQ2, u1.get());
+	std::copy(xx+num_node_Q1isoQ2, xx+2*num_node_Q1isoQ2, u2.get());
+	VecRestoreArrayRead(x, &xx);
+
+	VecGetSubVector(x, pIdx, &statesP);
+	MatMult(D, statesP, statesPfull);
+	VecGetArray(statesPfull, &states_array);
+	std::copy(states_array, states_array+num_node_Q1isoQ2, pressure.get());
+	VecRestoreArray(statesPfull, &states_array);
+	VecRestoreSubVector(x, pIdx, &statesP);
+
+	system_update_function();
+
+	Mat forwardOperator;
+	Mat forwardOperatorNonlinear;
+	MatDuplicate(forwardOperatorFixed, MAT_COPY_VALUES, &forwardOperator);
+
+	if (stabOption == 1){
+		Mat SUntOperator;
+
+		MatAXPY(C, 1.0, G, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(C, 1.0, SUt, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(tauA11, 1.0, SUnt11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(tauA12, 1.0, SUnt12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(tauA21, 1.0, SUnt21, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(tauA22, 1.0, SUnt22, DIFFERENT_NONZERO_PATTERN);
+
+		Mat list[] = {C, NULL, S1Cond, NULL, C, S2Cond, NULL, NULL, zeroMatrix};
+		Mat list2[] = {tauA11, tauA12, NULL, tauA21, tauA22, NULL, NULL, NULL, zeroMatrix};
+		MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list, &forwardOperatorNonlinear);
+		MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list2, &SUntOperator);
+		MatAXPY(forwardOperator, 1.0, SUntOperator, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(forwardOperator, 1.0, forwardOperatorNonlinear, DIFFERENT_NONZERO_PATTERN);
+
+		load_vector_stab();
+		VecCopy(Vstab, f);
+
+		VecScale(f, -1.0);
+		MatMultAdd(forwardOperator, x, f, f);
+
+		MatDestroy(&SUntOperator);
+	} else {
+		Mat list[] = {C, NULL, NULL, NULL, C, NULL, NULL, NULL, zeroMatrix};
+		MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list, &forwardOperatorNonlinear);
+		MatAXPY(forwardOperator, 1.0, forwardOperatorNonlinear, DIFFERENT_NONZERO_PATTERN);
+
+		MatMult(forwardOperator, x, f);
+	}
+
+	MatDestroy(&forwardOperator);
+	MatDestroy(&forwardOperatorNonlinear);
+}
+
+void stokesSolver::FormJacobian(SNES snes, Vec x, Mat jac, Mat B){
+	Mat jacobianNonlinear;
+	Mat workspace1;
+	Mat workspace2;
+	MatConvert(jacobianFixed, MATSEQAIJ, MAT_INITIAL_MATRIX, &workspace1);
+	MatCopy(workspace1, B, DIFFERENT_NONZERO_PATTERN);
+
+	const double *xx;
+	VecGetArrayRead(x, &xx);
+	std::copy(xx, xx+num_node_Q1isoQ2, u1.get());
+	std::copy(xx+num_node_Q1isoQ2, xx+2*num_node_Q1isoQ2, u2.get());
+	VecRestoreArrayRead(x, &xx);
+
+	VecGetSubVector(x, pIdx, &statesP);
+	MatMult(D, statesP, statesPfull);
+	VecRestoreSubVector(x, pIdx, &statesP);
+	VecGetArray(statesPfull, &states_array);
+	std::copy(states_array, states_array+num_node_Q1isoQ2, pressure.get());
+	VecRestoreArray(statesPfull, &states_array);
+
+	system_update_jacobian();
+
+	if (stabOption == 1){
+		MatAXPY(KC11, 1.0, tauA11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, 1.0, tauA22, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC12, 1.0, tauA12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC21, 1.0, tauA21, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(KC11, 1.0, KSUt, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, 1.0, KSUt, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(KC11, 1.0, KS11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC12, 1.0, KS12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC21, 1.0, KS21, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, 1.0, KS22, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(KC11, 1.0, SUnt11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC12, 1.0, SUnt12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC21, 1.0, SUnt21, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, 1.0, SUnt22, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(KC11, 1.0, KSUnt11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC12, 1.0, KSUnt12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC21, 1.0, KSUnt21, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, 1.0, KSUnt22, DIFFERENT_NONZERO_PATTERN);
+
+		MatAXPY(KC11, -1.0, KF11, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC12, -1.0, KF12, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC21, -1.0, KF21, DIFFERENT_NONZERO_PATTERN);
+		MatAXPY(KC22, -1.0, KF22, DIFFERENT_NONZERO_PATTERN);
+
+		Mat list[] = {KC11, KC12, KSB1CondT, KC21, KC22, KSB2CondT, NULL, NULL, zeroMatrix};
+		MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list, &jacobianNonlinear);
+		MatConvert(jacobianNonlinear, MATSEQAIJ, MAT_INITIAL_MATRIX, &workspace1);
+		MatAXPY(B, 1, workspace1, DIFFERENT_NONZERO_PATTERN);
+	} else {
+		Mat list[] = {KC11, KC12, NULL, KC21, KC22, NULL, NULL, NULL, zeroMatrix};
+		MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, list, &jacobianNonlinear);
+		MatConvert(jacobianNonlinear, MATSEQAIJ, MAT_INITIAL_MATRIX, &workspace1);
+		MatAXPY(B, 1, workspace1, DIFFERENT_NONZERO_PATTERN);
+	}
+	
+	MatDestroy(&jacobianNonlinear);
+	MatDestroy(&workspace1);
+}
+
+void stokesSolver::snes_setup(){
+	SNESCreate(PETSC_COMM_SELF, &snes);
+	SNESSetFunction(snes, r, FormFunctionStatic, this);
+	SNESSetJacobian(snes, J, J, FormJacobianStatic, this);
+	// SNESSetJacobian(snes, J, J, SNESComputeJacobianDefault, this);	
+	SNESMonitorSet(snes, MySNESMonitor, NULL, NULL);
+
+	SNESGetKSP(snes, &ksp);
+	KSPGetPC(ksp, &pc);
+	PCSetType(pc, PCFIELDSPLIT);
+	PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
+
+	PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELF, NULL);
+	// KSPMonitorSet(ksp, MyKSPMonitor, NULL, 0);
+	
+	KSPSetTolerances(ksp, 1e-8, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
+	SNESSetFromOptions(snes);
+}
+
+void stokesSolver::forwardStep(){
+	load_vector();
+	VecCopy(V, rhsF);
+	MatMultAdd(Mfull, states, rhsF, rhsF);
+
+	SNESSolve(snes, rhsF, states);
+	// VecView(states, PETSC_VIEWER_STDOUT_WORLD);
+
+	VecGetArray(states, &states_array);
+	std::copy(states_array, states_array+num_node_Q1isoQ2, u1.get());
+	std::copy(states_array+num_node_Q1isoQ2, states_array+2*num_node_Q1isoQ2, u2.get());
+	VecRestoreArray(states, &states_array);
+	for (int i = 0; i < num_node_Q1isoQ2; ++i){
+		uNorm[i] = sqrt(pow(u1[i],2) + pow(u2[i],2));
+	}
+};
+
+void stokesSolver::solve()
+{
+	snes_setup();
+	for (int i = 0; i < timeSteps; ++i){
+		std::cout << "#################" << " step " << i+1 << " #################" << std::endl;
+		time = time+deltaT;
+		forwardStep();
+		tauUpdate();
+	}
+	H1test();
+}
+
+double stokesSolver::getValues(double x, double y, int dir)
+{
+    double element_h = 1.0/division_Q1isoQ2;
+
+    int column;
+    int row;
+
+    int square[4];
+    double coords[4];
+
+    double epsilon;
+    double eta;
+
+    double local_u[4];
+
+    column  = x / element_h;
+    row     = y / element_h;
+
+    if (column == division_Q1isoQ2){
+            column -= 1;
+    }
+    if (row == division_Q1isoQ2){
+            row -= 1;
+    }
+
+    square[0] = quadrilaterals[0][division_Q1isoQ2*row+column];
+    square[1] = quadrilaterals[1][division_Q1isoQ2*row+column];
+    square[2] = quadrilaterals[2][division_Q1isoQ2*row+column];
+    square[3] = quadrilaterals[3][division_Q1isoQ2*row+column];
+
+    coords[0] = points[0][square[0]];
+    coords[1] = points[0][square[2]];
+    coords[2] = points[1][square[0]];
+    coords[3] = points[1][square[2]];
+
+    epsilon = (x-coords[0])/(coords[1]-coords[0])*2-1;
+    eta     = (y-coords[2])/(coords[3]-coords[2])*2-1;
+
+    for (int k = 0; k < 4; ++k){
+        if (dir == 0){
+	        local_u[k] = u1[PBC_Q1isoQ2_idx[square[k]]];
+        } else if (dir == 1){
+	        local_u[k] = u2[PBC_Q1isoQ2_idx[square[k]]];        	
+        }
+    }
+    double velocity = shape_interpolation(epsilon, eta, local_u);
+	return velocity;  
+}
+
+
+void stokesSolver::H1test(){
+	double output;
+
+	Vec load1;
+	Vec load2;
+	Vec reference;
+	Vec solution;
+
+	mesh_periodic mesh_L7(7);
+	mesh_L7.M_matrix();
+	mesh_L7.A_matrix();
+	mesh_L7.load_vector(load1, ref, NULL); 
+	VecDuplicate(load1, &reference);
+	mesh_L7.interpolate(load1, reference);
+	mesh_L7.load_vector(load2, getValues_static, this);
+	VecDuplicate(load2, &solution); 
+	mesh_L7.interpolate(load2, solution);
+
+	Vec workspaceV;
+	Mat workspaceA;
+	Mat workspaceM;
+
+	VecAXPY(solution, -1.0, reference);
+	VecDuplicate(solution, &workspaceV);
+
+	Mat listFunction[] = {mesh_L7.A, NULL, NULL, NULL, mesh_L7.A, NULL, NULL, NULL, mesh_L7.zeroMatrix};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, listFunction, &workspaceA);	
+	MatMult(workspaceA, solution, workspaceV);
+	VecDot(solution, workspaceV, &output);
+	output = sqrt(output);
+	std::cout << "H1 norm: " << output << std::endl;
+	
+	Mat listFunction2[] = {mesh_L7.M, NULL, NULL, NULL, mesh_L7.M, NULL, NULL, NULL, mesh_L7.zeroMatrix};
+	MatCreateNest(PETSC_COMM_SELF, 3, NULL, 3, NULL, listFunction2, &workspaceM);	
+	MatMult(workspaceM, solution, workspaceV);
+	VecDot(solution, workspaceV, &output);
+	output = sqrt(output);
+	std::cout << "L2 norm: " << output << std::endl;
+
+	VecDestroy(&load1);
+	VecDestroy(&load2);
+	VecDestroy(&reference);
+	VecDestroy(&solution);
+	VecDestroy(&workspaceV);
+	MatDestroy(&workspaceM);
+	MatDestroy(&workspaceA);
+};
+
+void write2txt(double array[][4], int arraySize, std::string pathName){
+	std::ofstream myfile;
+	myfile.open(pathName);
+	for (int j = 0; j < 4; ++j){
+		for (int i = 0; i < arraySize; ++i){
+			myfile << array[i][j] << " ";
+		}
+		myfile << std::endl;
+	}
+	myfile.close();
+};
+
+
+void writeU(double u1[], double u2[], int arraySize, std::string pathName){
+	std::ofstream myfile;
+	myfile.open(pathName);
+	for (int i = 0; i < arraySize; ++i){
+		myfile << u1[i] << " " << u2[i] << std::endl;
+	}
+	myfile.close();
+};
+
+
+void txt2read(double array[][4], int arraySize, std::string pathName){
+	std::ifstream myfile;
+	myfile.open(pathName, std::ios_base::in);
+	for (int j = 0; j < 4; ++j){
+		for(int i = 0; i < arraySize; ++i){
+			myfile >> array[i][j];
+		}
+	}
+	myfile.close();
+}
+
+void read_config(std::vector<std::string> &paras, std::vector<std::string> &vals){
+	std::ifstream cFile("mlmcmc_config.txt");
+	if (cFile.is_open()){
+		std::string line;
+		while(getline(cFile, line)){
+			line.erase(std::remove_if(line.begin(), line.end(), isspace), line.end());
+			if (line[0] == '#' || line.empty()){
+				continue;
+			}
+			auto delimiterPos = line.find("=");
+			auto name = line.substr(0, delimiterPos);
+			auto value = line.substr(delimiterPos+1);
+
+			paras.push_back(name);
+			vals.push_back(value);
+		}
+	}
+	cFile.close();
+}
+
+int main(int argc, char* argv[]){
+	int rank;
+	int size;
+
+	// // Options List 1
+	// PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
+	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", PCGAMG);
+
+	// // Options List 2
+	// PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
+	// PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
+	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "lu");
+	// PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
+
+	PetscInitialize(&argc, &argv, NULL, NULL);
+	MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+	MPI_Comm_size(PETSC_COMM_WORLD, &size);
+
+	std::vector<std::string> name;
+	std::vector<std::string> value;
+	std::vector<double> rand_coef;
+	read_config(name, value);
+	int num_term = std::stoi(value[0]);
+	for (int i = 0; i < num_term; ++i){
+		rand_coef.push_back(std::stod(value[i+1]));
+	}
+	int levels = std::stoi(value[num_term+1]);
+	int a = std::stoi(value[num_term+2]);
+	double pCNstep = std::stod(value[num_term+3]);
+	int task = std::stoi(value[num_term+4]);
+	int plainMCMC_sample_number = std::stoi(value[num_term+5]);
+	int obsNumPerRow = std::stoi(value[num_term+6]);
+	double noiseVariance = std::stod(value[num_term+7]);
+
+	if (rank == 0){
+		std::cout << "configuration: " << std::endl; 
+		std::cout << "num_term: " << num_term << " coefs: ";
+		for (int i = 0; i < num_term; ++i){
+			std::cout << rand_coef[i] << " ";
+		}
+		std::cout << std::endl;
+		std::cout << "levels: "           << levels       <<  std::endl;
+		std::cout << "a: "                << a            <<  std::endl;
+		std::cout << "pCNstep: "          << pCNstep          <<  std::endl;
+		std::cout << "task: "             << task         <<  std::endl;
+		std::cout << "plainMCMC samples:" << plainMCMC_sample_number << std::endl;
+		std::cout << "obsNumPerRow: "     << obsNumPerRow <<  std::endl;
+		std::cout << "noiseVariance: "    << noiseVariance << std::endl; 
+	}
+
+	if (task == 8){
+		stokesSolver testSolver(levels, 1, 1);
+		testSolver.samples[0] = 1.0;
+		testSolver.solve();
+	}
+
+	PetscFinalize();
+	return 0;
+}
+

@@ -1,0 +1,1 @@
+/usr/bin/c++     CMakeFiles/testSolve.dir/stokes_v1-1.cpp.o  -o testSolve  -L/usr/local/petsc/petsc-3.12.5/arch-linux2-c-debug/lib -Wl,-rpath,/usr/local/petsc/petsc-3.12.5/arch-linux2-c-debug/lib -lpetsc -lmpi 

@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblinearAlgebra.a  CMakeFiles/linearAlgebra.dir/numericalRecipes.cpp.o
+/usr/bin/ranlib liblinearAlgebra.a

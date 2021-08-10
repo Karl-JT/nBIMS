@@ -1,0 +1,2 @@
+/usr/bin/ar qc libstokes2dsolver.a  CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o
+/usr/bin/ranlib libstokes2dsolver.a

@@ -1,0 +1,5 @@
+[Running] cd "/home/juntao/Desktop/coding-interview-university/array/" && g++ array.h -o array && "/home/juntao/Desktop/coding-interview-university/array/"array
+/bin/sh: 1: /home/juntao/Desktop/coding-interview-university/array/array: Permission denied
+
+[Done] exited with code=126 in 0.042 seconds
+

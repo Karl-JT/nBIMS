@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/fenics/shared/src/tool/numericalRecipes/numericalRecipes.cpp
+iostream
+-
+fstream
+-
+sstream
+-
+math.h
+-
+numericalRecipes.h
+/home/fenics/shared/src/tool/numericalRecipes/numericalRecipes.h
+
+/home/fenics/shared/src/tool/numericalRecipes/numericalRecipes.h
+gsl/gsl_math.h
+-
+gsl/gsl_eigen.h
+-
+gsl/gsl_matrix.h
+-
+gsl/gsl_vector.h
+-
+gsl/gsl_linalg.h
+-
+

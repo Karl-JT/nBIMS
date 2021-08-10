@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib64
+includedir=${prefix}/include
+
+Name: adolc
+Version: 2.6.3
+Description: Algorithmic Differentiation Library for C/C++
+Requires: 
+Libs: -L${libdir} -ladolc -Wl,-rpath,${libdir}  -L/usr/lib/x86_64-linux-gnu -lboost_system -lm 
+Cflags: -I${includedir}

@@ -1,0 +1,28 @@
+#Mixed Method of Hellinger and Reissner
+
+TR  = FiniteElement("RT", triangle, 1)
+B3  = FiniteElement("Bubble", triangle, 3)
+DG0 = VectorElement("DG", triangle, 0)
+CG1 = FiniteElement("CG", triangle, 1)
+
+PEERS = MixedElement([TR, B3, TR, B3, DG0, CG1])
+
+(a1, b1, a2, b2, u, eta) = TrialFunctions(PEERS)
+(a1t, b1t, a2t, b2t, ut, etat) = TestFunctions(PEERS)
+
+sigma = as_tensor((a1,a2))+as_tensor([[b1.dx(1),-b1.dx(0)],[b2.dx(1),-b2.dx(0)]])  
+tau = as_tensor((a1t,a2t))+as_tensor([[b1t.dx(1),-b1t.dx(0)],[b2t.dx(1),-b2t.dx(0)]])  
+
+I = Identity(2)
+
+f1 = Coefficient(CG1)
+f2 = Coefficient(CG1)
+
+mu = Coefficient(CG1)
+lda = Coefficient(CG1)
+
+a = (inner(1/2/mu*sigma+(1/(4*lda+4*mu)-1/4/mu)*tr(sigma)*I, tau)  \
+    + inner(div(tau), u) + (tau[0,1]-tau[1,0])*eta \
+    + inner(div(sigma), ut) + (sigma[0,1]-sigma[1,0])*etat)*dx
+
+L = (-f1*ut[0]-f2*ut[1])*dx

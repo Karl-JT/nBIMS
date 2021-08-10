@@ -1,0 +1,2 @@
+/usr/bin/ar qc libjetFlow.a  CMakeFiles/jetFlow.dir/jetFlow.cpp.o CMakeFiles/jetFlow.dir/jetFlowSolver.cpp.o
+/usr/bin/ranlib libjetFlow.a

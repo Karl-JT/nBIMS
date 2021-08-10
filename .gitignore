@@ -1,0 +1,8 @@
+bin/*
+output/*
+outputData/*
+*.tape
+CMakeCache.txt
+*.cmake
+Makefile
+CMakeFiles/*

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchannelFlow.a  CMakeFiles/channelFlow.dir/ChannelCppSolverBiMesh.cpp.o CMakeFiles/channelFlow.dir/turbSolver.cpp.o
+/usr/bin/ranlib libchannelFlow.a

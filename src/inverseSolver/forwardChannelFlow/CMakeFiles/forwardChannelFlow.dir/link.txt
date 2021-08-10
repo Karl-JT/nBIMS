@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wno-unused-parameter    CMakeFiles/forwardChannelFlow.dir/forwardChannelFlow.cpp.o  -o ../../../bin/forwardChannelFlow  -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64:/usr/local/lib -lbisectionMesh /usr/local/lib/libmpicxx.so /usr/local/lib/libmpi.so ../../tool/IO/libIO.a -ldnsDataInterpreter -ladolc 

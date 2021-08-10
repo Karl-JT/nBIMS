@@ -1,0 +1,15 @@
+#pragma once
+
+#include <MCMCChain.h>
+
+class pCNChain : public pCNChain {
+public:
+	pCNChain(){};
+	~pCNChain(){};
+
+	double stepSize;	
+	std::shared_ptr<compUniformProposal> coefProposal;
+
+	virtual void runStep();
+	virtual void run();
+}

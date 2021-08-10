@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchannelFlowAdjoint.a  CMakeFiles/channelFlowAdjoint.dir/ChannelCppSolverBiMesh.cpp.o CMakeFiles/channelFlowAdjoint.dir/turbSolverAdjoint.cpp.o
+/usr/bin/ranlib libchannelFlowAdjoint.a

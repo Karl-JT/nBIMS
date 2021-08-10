@@ -1,0 +1,165 @@
+#include "../../forwardSolver/bisectionMesh/ChannelCppSolverBiMesh.h" 
+#include "../mcmcCore/MCMCChain.h"
+#include "../mcmcCore/MCMCMetropolis.h"
+
+#include <mpi.h>
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+#include <random>
+
+
+void MLMCMC(int procid, int numprocs, double reTau = 550, int numCoef = 1, bool validation = 1){
+	//Set up random number env
+	gsl_rng *r;
+	const gsl_rng_type *T;
+	gsl_rng_env_setup();
+	T = gsl_rng_default;
+	r = gsl_rng_alloc(T);
+	gsl_rng_set(r, 19*procid+13);
+	double workspace;
+
+	default_random_engine generator;
+	generator.seed(29*procid+17);
+	uniform_real_distribution<double> acceptance(0, 1);
+
+	//Initialize MCMC Chains
+	MCMCChain* MCMCChain1;
+	MCMCChain* MCMCChain2;
+
+	MCMCChain1 = new MCMCChain(pow(2, 3*(numprocs-procid))*1000+2000, numprocs,  procid, numCoef, reTau, procid);
+	if (validation == 1){
+		MCMCChain1->turbProp.validationBoundary();
+		MCMCChain1->turbProp.validationPressure();
+	}
+	if (procid > 0) {
+		MCMCChain2 = new MCMCChain(pow(2, 3*(numprocs-procid))*8+100, numprocs, procid+numprocs, numCoef, reTau, procid-1);
+		if (validation == 1){
+			MCMCChain2->turbProp.validationBoundary();
+			MCMCChain2->turbProp.validationPressure();
+		}
+	}
+
+
+	//update beta values
+	if (validation == 1){
+		MCMCChain1->turbProp.updateBeta1(MCMCChain1->approximateCoefProposal, 1, 1);
+		if (procid > 0){
+			MCMCChain2->turbProp.updateBeta1(MCMCChain1->approximateCoefProposal, 1, 1);
+		}
+	} else {
+		MCMCChain1->turbProp.updateBeta(MCMCChain1->approximateCoefProposal, 1, 1);
+		if (procid > 0){
+			MCMCChain2->turbProp.updateBeta(MCMCChain1->approximateCoefProposal, 1, 1);
+		}
+	}
+
+	MCMCChain1->solve();
+	MCMCChain1->updateLikelihood();
+	cout << "MCMCChain1, lnLikelihoodt0" << MCMCChain1->lnLikelihoodt0 << endl;
+	workspace = MCMCChain1->turbProp.velocityInt();
+
+	if (procid > 0){
+		MCMCChain2->solve();
+		MCMCChain2->updateLikelihood();
+	}
+
+	///////////////////////////////////////Chain Start////////////////////////////////////////////
+	while (MCMCChain1->chainLength < MCMCChain1->MLl){
+		//forward solve
+		MCMCChain1->run();
+		if (procid > 0){
+			MCMCChain1->lnLikelihoodref = MCMCChain2->returnLikelihoodref(MCMCChain1->approximateCoefProposal);
+			MCMCChain2->run();
+			MCMCChain2->lnLikelihoodref = MCMCChain1->returnLikelihoodref(MCMCChain2->approximateCoefProposal);
+		}
+
+		// Acceptance Check		
+		if (MCMCChain1->alpha >= log(acceptance(generator))){
+			// Update likelihood
+			cout << "sample accepted" << endl;
+			MCMCChain1->lnLikelihoodt0 = MCMCChain1->lnLikelihoodt1; //- MCMCChain1->lnLikelihoodref;
+
+			if (procid > 0){
+				if (-MCMCChain1->lnLikelihoodt1+MCMCChain1->lnLikelihoodref <= 0){
+					MCMCChain1->I = 1;
+				} else {
+					MCMCChain1->I = 0;
+				}
+				MCMCChain1->A[1] = (1-exp(-MCMCChain1->lnLikelihoodt1+MCMCChain1->lnLikelihoodref))*MCMCChain1->I;
+				MCMCChain1->A[3] = (exp(-MCMCChain1->lnLikelihoodt1+MCMCChain1->lnLikelihoodref)-1)*MCMCChain1->I;
+				MCMCChain1->A[6] = exp(-MCMCChain1->lnLikelihoodt1+MCMCChain1->lnLikelihoodref)*MCMCChain1->I;
+				MCMCChain1->A[7] = 1-MCMCChain1->I;
+				MCMCChain1->MCMCChainIO->chainWriteA1(MCMCChain1->A[1]);
+				MCMCChain1->MCMCChainIO->chainWriteA3(MCMCChain1->A[3]);
+				MCMCChain1->MCMCChainIO->chainWriteA6(MCMCChain1->A[6]);
+				MCMCChain1->MCMCChainIO->chainWriteA7(MCMCChain1->A[7]); 		
+			}
+			MCMCChain1->MCMCChainIO->chainWriteCoef(MCMCChain1->approximateCoefProposal);
+			MCMCChain1->MCMCChainIO->chainWriteQ(MCMCChain1->turbProp.velocityInt());
+			MCMCChain1->MCMCChainIO->chainWriteLikelihood(MCMCChain1->lnLikelihoodt0);
+
+			workspace = MCMCChain1->turbProp.velocityInt();
+			// Backup current status
+			MCMCChain1->approximateCoef = MCMCChain1->approximateCoefProposal;
+		} else {
+			if (procid > 0){
+				MCMCChain1->MCMCChainIO->chainWriteA1(MCMCChain1->A[1]);
+				MCMCChain1->MCMCChainIO->chainWriteA3(MCMCChain1->A[3]);
+				MCMCChain1->MCMCChainIO->chainWriteA6(MCMCChain1->A[6]);
+				MCMCChain1->MCMCChainIO->chainWriteA7(MCMCChain1->A[7]);	
+			}
+		    MCMCChain1->MCMCChainIO->chainWriteCoef(MCMCChain1->approximateCoef);
+		    MCMCChain1->MCMCChainIO->chainWriteQ(workspace);
+		    MCMCChain1->MCMCChainIO->chainWriteLikelihood(MCMCChain1->lnLikelihoodt0);
+		}
+
+
+		if (procid > 0){ 
+			if (MCMCChain2->alpha >= log(acceptance(generator))){
+				// Update likelihood
+				cout << "sample accepted" << endl;
+				MCMCChain2->lnLikelihoodt0 = MCMCChain2->lnLikelihoodt1;
+				if (-MCMCChain2->lnLikelihoodref+MCMCChain2->lnLikelihoodt1 <= 0){
+					MCMCChain2->I = 1;
+				} else {
+					MCMCChain2->I = 0;
+				}
+
+				MCMCChain2->A[2] = (exp(-MCMCChain2->lnLikelihoodt1+MCMCChain2->lnLikelihoodref)-1)*(1-MCMCChain2->I);
+				MCMCChain2->A[4] = MCMCChain2->I;
+				MCMCChain2->A[5] = (1-exp(-MCMCChain2->lnLikelihoodt1+MCMCChain2->lnLikelihoodref))*(1-MCMCChain2->I);
+				MCMCChain2->A[8] = exp(-MCMCChain2->lnLikelihoodt1+MCMCChain2->lnLikelihoodref)*(1-MCMCChain2->I);
+
+				MCMCChain2->MCMCChainIO->chainWriteA2(MCMCChain2->A[2]);
+				MCMCChain2->MCMCChainIO->chainWriteA4(MCMCChain2->A[4]);
+				MCMCChain2->MCMCChainIO->chainWriteA5(MCMCChain2->A[5]);
+				MCMCChain2->MCMCChainIO->chainWriteA8(MCMCChain2->A[8]);	
+
+				MCMCChain2->MCMCChainIO->chainWriteCoef(MCMCChain2->approximateCoefProposal);
+				MCMCChain2->MCMCChainIO->chainWriteQ(MCMCChain2->turbProp.velocityInt());
+				MCMCChain2->MCMCChainIO->chainWriteLikelihood(MCMCChain2->lnLikelihoodt0);
+
+				// Backup current status
+				MCMCChain2->approximateCoef = MCMCChain2->approximateCoefProposal;
+			} else {
+				MCMCChain2->MCMCChainIO->chainWriteA2(MCMCChain2->A[2]);
+				MCMCChain2->MCMCChainIO->chainWriteA4(MCMCChain2->A[4]);
+				MCMCChain2->MCMCChainIO->chainWriteA5(MCMCChain2->A[5]);
+				MCMCChain2->MCMCChainIO->chainWriteA8(MCMCChain2->A[8]);	
+
+				MCMCChain2->MCMCChainIO->chainWriteCoef(MCMCChain2->approximateCoef);
+				MCMCChain2->MCMCChainIO->chainWriteQ(MCMCChain2->turbProp.velocityInt());
+				MCMCChain2->MCMCChainIO->chainWriteLikelihood(MCMCChain2->lnLikelihoodt0);
+			}
+		}
+	}
+}

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libstochasticNewtonMCMC.a  
+/usr/bin/ranlib libstochasticNewtonMCMC.a

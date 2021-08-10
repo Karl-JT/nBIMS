@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/fenics/share/src/inverseSolver/stochasticNewtonChannelFlow/inverseSolver.cpp
+fstream
+-
+sstream
+-
+stochasticNewtonMCMC.h
+-
+

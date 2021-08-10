@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/shared/src/inverseSolver/forwardChannelFlow/forwardChannelFlow.cpp
+fstream
+-
+sstream
+-
+random
+-
+dataIO.h
+-
+turbSolver.h
+-
+
+src/tool/IO/dataIO.h
+iostream
+-
+fstream
+-
+

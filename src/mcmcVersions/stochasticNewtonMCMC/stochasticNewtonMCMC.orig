@@ -1,0 +1,211 @@
+#include "MCMCMetropolis.h"
+#include "MCMCChain.h"
+#include "../../tool/linearAlgebra/linearAlgebra.h"
+#include "../../adVersion/adCore/adCore.h"
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+#include <random>
+
+class stochasticNewtonMCMC : public MCMCChain {
+private:
+	gsl_rng *r;
+	const gsl_rng_type *T;
+	int numCoef;
+	int decay;
+	chainIO *MCMCChainIO;
+public:
+	stochasticNewtonMCMC(string outputPath);
+	~stochasticNewtonMCMC(){};
+
+	template<typename problemType>
+	void run(problemType& forwardSolver, double QoI[]);
+	double alphaUpdate(double lnLikelihoodt0, double lnLikelihoodt1, double vectorM[], double vectorY[], double gradientVectorM[], double gradientVectorY[], double hessianMatrixM[], double hessianMatrixY[]);
+};
+
+stochasticNewtonMCMC::stochasticNewtonMCMC(string outputPath){
+	gsl_rng_env_setup();
+	T = gsl_rng_default;
+	r = gsl_rng_alloc(T);
+	gsl_rng_set(r, 2019);
+
+	numCoef = 2;
+	decay = 1;
+
+	MCMCChainIO = new chainIO(outputPath, 0, numCoef); 
+}
+
+double stochasticNewtonMCMC::alphaUpdate(double lnLikelihoodt0, double lnLikelihoodt1, double vectorM[], double vectorY[], double gradientVectorM[], double gradientVectorY[], double hessianMatrixM[], double hessianMatrixY[]){
+	double alpha;
+	double piY;
+	double piM;
+	double detHM;
+	double detHY;
+	double workSpaceScale;
+
+	int s;
+	gsl_permutation* p = gsl_permutation_alloc(numCoef);
+	gsl_vector* workSpaceVector = gsl_vector_alloc(numCoef);
+	gsl_matrix* workSpaceMatrix = gsl_matrix_alloc(numCoef, numCoef);
+	gsl_vector* M = gsl_vector_alloc(numCoef);
+	gsl_vector* Y = gsl_vector_alloc(numCoef);
+	gsl_vector* gradientM = gsl_vector_alloc(numCoef);
+	gsl_vector* gradientY = gsl_vector_alloc(numCoef); 
+	gsl_matrix* hessianM = gsl_matrix_alloc(numCoef, numCoef);
+	gsl_matrix* hessianY = gsl_matrix_alloc(numCoef, numCoef);
+
+	for (int i = 0; i < numCoef; i++){
+		gsl_vector_set(M, i, vectorM[i]);
+		gsl_vector_set(Y, i, vectorY[i]);
+		gsl_vector_set(gradientM, i, gradientVectorM[i]);
+		gsl_vector_set(gradientY, i, gradientVectorY[i]);
+		for (int j = 0; j < numCoef; j++){
+			gsl_matrix_set(hessianM, i, j, hessianMatrixM[i*numCoef+j]);
+			gsl_matrix_set(hessianY, i, j, hessianMatrixY[i*numCoef+j]);
+		}
+	}
+
+	gsl_matrix_memcpy(workSpaceMatrix, hessianM);
+	gsl_linalg_LU_decomp(hessianM, p, &s);
+	detHM = gsl_linalg_LU_det(hessianM, s);
+	gsl_linalg_LU_solve(hessianM, p, gradientM, workSpaceVector);
+	gsl_vector_sub(workSpaceVector, M);
+	gsl_vector_add(workSpaceVector, Y);
+	gsl_blas_dgemv(CblasNoTrans, 1, workSpaceMatrix, workSpaceVector, 0, gradientM);
+	gsl_blas_ddot(workSpaceVector, gradientM, &workSpaceScale);
+	piM = -0.5*workSpaceScale*log(sqrt(detHM));
+
+	gsl_matrix_memcpy(workSpaceMatrix, hessianY);
+	gsl_linalg_LU_decomp(hessianY, p, &s);
+	detHY = gsl_linalg_LU_det(hessianY, s);
+	gsl_linalg_LU_solve(hessianY, p, gradientY, workSpaceVector);
+	gsl_vector_sub(workSpaceVector, Y);
+	gsl_vector_add(workSpaceVector, M);
+	gsl_blas_dgemv(CblasNoTrans, 1, workSpaceMatrix, workSpaceVector, 0, gradientY);
+	gsl_blas_ddot(workSpaceVector, gradientY, &workSpaceScale);
+	piY = -0.5*workSpaceScale*log(sqrt(detHY));
+
+	alpha = lnLikelihoodt1 - lnLikelihoodt0 + piM - piY;
+	return alpha;
+}
+
+template<typename problemType>
+void stochasticNewtonMCMC::run(problemType& forwardSolver, double QoI[]){
+	//Initialize Proposal Kernal
+	default_random_engine generator;
+	generator.seed(20191016);
+	uniform_real_distribution<double> acceptance(0, 1);
+
+	double stepSize = 0.1; 
+	double approximateCoef[numCoef];
+	double approximateCoefProposal[numCoef];
+	double fourierSeriesCoef[numCoef];
+	double newtonStepArray[numCoef];
+
+	for (int i = 0; i < numCoef; i++){
+		approximateCoef[i] = QoI[i];
+		approximateCoefProposal[i] = QoI[i];
+		fourierSeriesCoef[i] = QoI[i];
+	}
+
+	double workSpaceVector1[forwardSolver.turbProp.m];
+
+	covProposal coefProposal(numCoef, 0);
+	coefProposal.scale = stepSize;
+
+	double gradientVectorM[numCoef];
+	double gradientVectorY[numCoef];
+	double hessianMatrixM[numCoef*numCoef];
+	double hessianMatrixY[numCoef*numCoef];
+
+	//Initialize propability variables
+	double lnLikelihoodt0 = 0;
+	double lnLikelihoodt1 = 0;
+	double alpha = 0;
+
+	//update beta values
+	vector<double> betaT0(forwardSolver.turbProp.m);
+	for (int i = 0; i < forwardSolver.turbProp.m; i++){
+		betaT0[i] = 0;
+		for (int k = 0; k < numCoef; k++){
+			betaT0[i] = betaT0[i] + fourierSeriesCoef[k]/pow((k+1), decay)*cos(M_PI*(k+1)*forwardSolver.turbProp.yCoordinate[i]); 
+		}
+		forwardSolver.turbProp.betaML[i] = exp(betaT0[i]);
+	}
+
+	//solve 
+	adIterativeSolver(forwardSolver.turbProp, approximateCoefProposal, gradientVectorM, hessianMatrixM, numCoef);
+	lnLikelihoodt0 = forwardSolver.turbProp.lnLikelihood();
+	SPDRegularization(hessianMatrixM, numCoef);
+	cout << lnLikelihoodt0 << endl;
+
+///////////////////////////////////////Chain Start////////////////////////////////////////////
+	for (int sampleNum = 0; sampleNum < 1000; sampleNum++){	
+		lnLikelihoodt1 = 0;
+		coefProposal.updatePreMatrix(hessianMatrixM);
+		coefProposal.RWProposalGenerate(approximateCoefProposal);
+		newtonStep(gradientVectorM, hessianMatrixM, numCoef, newtonStepArray);
+
+		std::cout << "newtonStep: ";
+		for (int i = 0 ; i < numCoef; i++){
+			approximateCoefProposal[i] = approximateCoef[i] - newtonStepArray[i] + approximateCoefProposal[i];
+			std::cout << newtonStepArray[i] << " " << approximateCoefProposal[i] << " ";
+		}
+		std::cout << std::endl;
+
+
+		// Forward Solving
+		adIterativeSolver(forwardSolver.turbProp, approximateCoefProposal, gradientVectorY, hessianMatrixY, numCoef);
+		lnLikelihoodt1 = forwardSolver.turbProp.lnLikelihood();
+		SPDRegularization(hessianMatrixY, numCoef);
+		alpha = alphaUpdate(lnLikelihoodt0, lnLikelihoodt1, approximateCoef, approximateCoefProposal, gradientVectorM, gradientVectorY, hessianMatrixM, hessianMatrixY);
+
+		// Acceptance Check
+		alpha = min(0.0, lnLikelihoodt1-lnLikelihoodt0);
+		//cout << endl << "lnLikelihoodt1: "<< lnLikelihoodt1 << " lnLikelihoodt0: " << lnLikelihoodt0 << " alpha: " << alpha << endl;
+		coefProposal.updateAcceptanceRate(alpha);
+		//cout << "stepSize: " << stepSize << endl;
+		if (alpha >= log(acceptance(generator)) && !isnan(lnLikelihoodt1)){
+			// Update likelihood
+			cout << "sample accepted" << endl;
+			lnLikelihoodt0 = lnLikelihoodt1;
+
+			MCMCChainIO->chainWriteBeta(workSpaceVector1, forwardSolver.turbProp.m);
+			for (int i = 0; i < forwardSolver.turbProp.m; i++){
+				workSpaceVector1[i] = forwardSolver.turbProp.xVelocity[i].value();
+			}			
+			MCMCChainIO->chainWriteVelocity(workSpaceVector1, forwardSolver.turbProp.m);
+			MCMCChainIO->chainWriteCoef(approximateCoef);
+
+			// Backup current status
+			for (int i = 0; i < forwardSolver.turbProp.m; i++){
+				betaT0[i] = forwardSolver.turbProp.betaML[i].value();
+			}
+			for (int i = 0; i < numCoef; i++){
+				approximateCoef[i] = approximateCoefProposal[i];
+				gradientVectorM[i] = gradientVectorY[i];
+				for (int j = 0; j < numCoef; j++){
+					hessianMatrixM[i*numCoef+j] = hessianMatrixY[i*numCoef+j];
+				}
+			}
+		} else {
+			cout << "sample rejected" << endl;
+			for (int i = 0; i < numCoef; i++){
+				forwardSolver.turbProp.betaML[i] = betaT0[i];
+			}
+			MCMCChainIO->chainWriteCoef(approximateCoef);
+			for (int i = 0 ; i < numCoef; i++){
+				approximateCoefProposal[i] = approximateCoef[i];
+			}
+		}
+		cout << "Current lnLikelihoodt0: " << lnLikelihoodt0 << endl; 
+	}
+}

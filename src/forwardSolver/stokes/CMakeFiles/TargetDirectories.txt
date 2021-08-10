@@ -1,0 +1,3 @@
+/home/shared/src/forwardSolver/stokes/CMakeFiles/rebuild_cache.dir
+/home/shared/src/forwardSolver/stokes/CMakeFiles/testSolve.dir
+/home/shared/src/forwardSolver/stokes/CMakeFiles/edit_cache.dir

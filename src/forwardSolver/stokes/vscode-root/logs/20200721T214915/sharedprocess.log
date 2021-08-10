@@ -1,0 +1,3 @@
+[2020-07-21 21:49:18.659] [sharedprocess] [info] main {"machineId":"6552cd2fe7cbf854d41338ec720516c20822ef934fe58479a54c26fa9896d96b","windowId":2}
+[2020-07-21 21:49:18.708] [sharedprocess] [error] [File Watcher (node.js)] Error: ENOENT: no such file or directory, stat '/home/juntao/Desktop/MCMC4LargeScalePDE/src/forwardSolver/stokes/vscode-root/User/snippets'
+[2020-07-21 21:49:58.683] [sharedprocess] [info] Starting to clean up unused language packs.

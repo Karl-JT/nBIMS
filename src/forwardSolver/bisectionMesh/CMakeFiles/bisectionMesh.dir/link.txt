@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbisectionMesh.a  CMakeFiles/bisectionMesh.dir/ChannelCppSolverBiMesh.cpp.o CMakeFiles/bisectionMesh.dir/turbSolver.cpp.o
+/usr/bin/ranlib libbisectionMesh.a

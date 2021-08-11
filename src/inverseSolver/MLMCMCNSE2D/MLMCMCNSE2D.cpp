@@ -60,14 +60,8 @@ int main(int argc, char* argv[])
 	PetscOptionsSetValue(NULL, "-ksp_error_if_not_converged", "1");
 	PetscOptionsSetValue(NULL, "-pc_type", "lu");
 	PetscOptionsSetValue(NULL, "-pc_factor_mat_solver_type", "mumps");
-	// PetscOptionsSetValue(NULL, "-mat_mumps_icntl_1", "1");
-	// PetscOptionsSetValue(NULL, "-mat_mumps_icntl_2", "1");
-	// PetscOptionsSetValue(NULL, "-mat_mumps_icntl_3", "1");
-	// PetscOptionsSetValue(NULL, "-mat_mumps_icntl_4", "3");
-	PetscOptionsSetValue(NULL, "-mat_mumps_icntl_28", "1");
-	PetscOptionsSetValue(NULL, "-mat_mumps_icntl_7", "2");
 	PetscOptionsSetValue(NULL, "-mat_mumps_icntl_24", "1");
-	PetscOptionsSetValue(NULL, "-mat_mumps_cntl_3", "1e-16");
+	PetscOptionsSetValue(NULL, "-mat_mumps_cntl_3", "1e-12");
 
 	PetscInitialize(&argc, &argv, NULL, NULL);
 	MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -84,7 +78,7 @@ int main(int argc, char* argv[])
         case 0: //Generate Observation
         {
             NSE2dSolver singleForwardSolver(PETSC_COMM_SELF, confData.levels, confData.num_term,confData.noiseVariance);
-            singleForwardSolver.samples[0]=0.8;
+            singleForwardSolver.samples[0]=confData.rand_coef[0];
             singleForwardSolver.solve(0);
             std::cout << singleForwardSolver.ObsOutput() << std::endl;
             std::cout << singleForwardSolver.QoiOutput() << std::endl;

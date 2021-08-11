@@ -165,6 +165,7 @@ void MLChain0i<samplerType, solverType>::updateQoI(){
 	solverUpper->solve(1);
 	solverLower->solve(1);
 	this->QoI[0] = solverUpper->solve4QoI()-solverLower->solve4QoI();
+    std::cout << this->QoI[0] << " " << solverUpper->samples[0] << " "<< solverUpper->solve4QoI() << " " << solverUpper->samples[0] << " " << solverLower->solve4QoI() << std::endl;
 }
 
 // template <typename samplerType, typename solverType> 

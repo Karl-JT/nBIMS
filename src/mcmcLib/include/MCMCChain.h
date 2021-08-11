@@ -93,7 +93,8 @@ void MCMCChain<samplerType, solverType>::runStep(std::default_random_engine* gen
 	chainIdx += 1;
 	sampleProposal();
 	solver->solve();
-	updatelnLikelihood();
+    std::cout << solver->samples[0] << " " << std::endl;
+    updatelnLikelihood();
 	checkAcceptance(generator);
 	if (accepted == 1){
 		lnLikelihoodt0 = lnLikelihoodt1;
@@ -101,7 +102,7 @@ void MCMCChain<samplerType, solverType>::runStep(std::default_random_engine* gen
 	}
 	if (chainIdx > numBurnin){
 		QoIsum[0] += QoI[0];
-        // std::cout << "MCMCChain " << QoI[0] << std::endl;
+        std::cout << "MCMCChain " << QoI[0] << std::endl;
 	}
 	acceptanceRate = acceptedNum/chainIdx;
 }

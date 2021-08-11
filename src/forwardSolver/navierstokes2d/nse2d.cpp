@@ -52,14 +52,14 @@ void NSE2dSolver::SolverSetup(){
     LinearSystemSetup();
 
 	KSPCreate(comm, &ksp);
-	KSPGetPC(ksp, &pc);
-	PCSetType(pc, PCFIELDSPLIT);
-	PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
-	PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, NULL);
+	// KSPGetPC(ksp, &pc);
+	// PCSetType(pc, PCFIELDSPLIT);
+	// PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
+	// PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, NULL);
 	// KSPMonitorSet(ksp, MyKSPMonitor, NULL, 0);
 	KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
 	KSPSetFromOptions(ksp);
-	KSPSetPC(ksp, pc);
+	// KSPSetPC(ksp, pc);
 }
 
 void NSE2dSolver::ForwardStep(){
@@ -131,14 +131,14 @@ double NSE2dSolver::solve4Obs(){
 double NSE2dSolver::ObsOutput(){
     double obs;
     VecDot(intVecObs, X, &obs);
-    obs = 10000.*obs;
+    obs = 100.*obs;
     return obs;	
 }
 
 double NSE2dSolver::QoiOutput(){
     double qoi;
     VecDot(intVecQoi, X_snap, &qoi);
-    qoi = 10000.*qoi;
+    qoi = 100.*qoi;
     return qoi;
 }
 

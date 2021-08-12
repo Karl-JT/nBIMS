@@ -165,7 +165,7 @@ void MLChain0i<samplerType, solverType>::updateQoI(){
 	solverUpper->solve(1);
 	solverLower->solve(1);
 	this->QoI[0] = solverUpper->solve4QoI()-solverLower->solve4QoI();
-    std::cout << this->QoI[0] << " " << solverUpper->samples[0] << " "<< solverUpper->solve4QoI() << " " << solverUpper->samples[0] << " " << solverLower->solve4QoI() << std::endl;
+    // std::cout << this->QoI[0] << " " << solverUpper->samples[0] << " "<< solverUpper->solve4QoI() << " " << solverUpper->samples[0] << " " << solverLower->solve4QoI() << std::endl;
 }
 
 // template <typename samplerType, typename solverType> 
@@ -742,7 +742,7 @@ void MLChaini0Lower<samplerType, solverType>::runStep(std::default_random_engine
 		A8sum[0] += (1-I)*exp(std::min(this->PhiLower-this->PhiUpper, 0.0))*this->QoI[0];
 		A5sum[0] += (1-I)*(1-exp(std::min(this->PhiLower-this->PhiUpper, 0.0)));
     }
-    std::cout << A2sum[0] << " " << (1-I)*(exp(std::min(this->PhiLower-this->PhiUpper, 0.0))-1) << " " << this->QoI[0] << std::endl;
+    // std::cout << A2sum[0] << " " << (1-I)*(exp(std::min(this->PhiLower-this->PhiUpper, 0.0))-1) << " " << this->QoI[0] << std::endl;
 	if (std::isnan(A2sum[0]) || std::isnan(A4sum[0]) || std::isnan(A8sum[0]) || std::isnan(A5sum[0])){
 		std::cout << "MLChaini0Lower encountered nan" << std::endl;
 		std::cin.get();
@@ -762,7 +762,7 @@ void MLChaini0Lower<samplerType, solverType>::run(double A2mean[], double A4mean
 		A8mean[0] = A8sum[0] / (this->maxChainLength-this->numBurnin);
 		A5mean[0] = A5sum[0] / (this->maxChainLength-this->numBurnin);
 	}
-	std::cout << " " << (this->maxChainLength-this->numBurnin) << "acceptanceRate: " << this->acceptanceRate << std::endl;
+	// std::cout << " " << (this->maxChainLength-this->numBurnin) << "acceptanceRate: " << this->acceptanceRate << std::endl;
 }
 
 
@@ -1055,7 +1055,7 @@ void MLChainijLower<samplerType, solverType>::runStep(std::default_random_engine
 		A8sum[0] += (1-I)*exp(std::min(this->PhiLower-this->PhiUpper, 0.0))*this->QoI[0];
 		A5sum[0] += (1-I)*(1-exp(std::min(this->PhiLower-this->PhiUpper, 0.0)));
 	}
-    std::cout << A2sum[0] << " " << (1-I)*(exp(std::min(this->PhiLower-this->PhiUpper, 0.0))-1) << " " << this->QoI[0] << std::endl;
+    // std::cout << A2sum[0] << " " << (1-I)*(exp(std::min(this->PhiLower-this->PhiUpper, 0.0))-1) << " " << this->QoI[0] << std::endl;
 	if (std::isnan(A2sum[0]) || std::isnan(A4sum[0]) || std::isnan(A8sum[0]) || std::isnan(A5sum[0])){
 		std::cout << "MLChainijLower encountered nan" << std::endl;
 		std::cin.get();
@@ -1371,7 +1371,7 @@ void MLChainijUpper<samplerType, solverType>::runStep(std::default_random_engine
 		A6sum[0] += I*exp(std::min(this->PhiUpper-this->PhiLower, 0.0))*this->QoI[0];
 		A7sum[0] += (1-I)*this->QoI[0];
 	}
-    std::cout << A1sum[0] << " " << I*(1-exp(std::min(this->PhiUpper-this->PhiLower, 0.0)))<< " " << this->QoI[0] << std::endl;
+    // std::cout << A1sum[0] << " " << I*(1-exp(std::min(this->PhiUpper-this->PhiLower, 0.0)))<< " " << this->QoI[0] << std::endl;
 	if (std::isnan(A1sum[0]) || std::isnan(A3sum[0]) || std::isnan(A6sum[0]) || std::isnan(A7sum[0])){
 		std::cout << "MLChainijUpper encountered nan" << std::endl;
 		std::cin.get();

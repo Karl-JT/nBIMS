@@ -78,11 +78,11 @@ void MCMCChain<samplerType, solverType>::checkAcceptance(std::default_random_eng
 	alpha = sampler->getAlpha(lnLikelihoodt0, lnLikelihoodt1);
 	alphaUni = log(uniform_distribution(*generator));
 	if (alphaUni < alpha){
-		std::cout << "sample accpeted" << std::endl;
+		// std::cout << "sample accpeted" << std::endl;
 		accepted = 1;
 		acceptedNum += 1;
 	} else {
-		std::cout << "sample rejected" << std::endl;
+		// std::cout << "sample rejected" << std::endl;
 		accepted = 0;
         sampler->restoreSample();
 	}
@@ -102,7 +102,7 @@ void MCMCChain<samplerType, solverType>::runStep(std::default_random_engine* gen
 	}
 	if (chainIdx > numBurnin){
 		QoIsum[0] += QoI[0];
-        std::cout << "MCMCChain " << QoI[0] << std::endl;
+        // std::cout << "MCMCChain " << QoI[0] << std::endl;
 	}
 	acceptanceRate = acceptedNum/chainIdx;
 }

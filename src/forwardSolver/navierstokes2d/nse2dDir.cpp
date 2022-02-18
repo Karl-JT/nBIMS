@@ -11,13 +11,13 @@ NSE2dDirSolver::NSE2dDirSolver(MPI_Comm comm_, int level_, int num_term_, double
     mesh      = new structureMesh2D(comm_, level_, 3, Q1, btype_);
     obs       = -0.91666;
     timeSteps = std::pow(2, level_+1);
-	deltaT    = tMax/timeSteps;
+    deltaT    = tMax/timeSteps;
 
-	samples   = std::make_unique<double[]>(num_term_);
+    samples   = std::make_unique<double[]>(num_term_);
 
-	DMCreateGlobalVector(mesh->meshDM,&X);
-	DMCreateGlobalVector(mesh->meshDM,&intVecObs);
-	DMCreateGlobalVector(mesh->meshDM,&intVecQoi);
+    DMCreateGlobalVector(mesh->meshDM,&X);
+    DMCreateGlobalVector(mesh->meshDM,&intVecObs);
+    DMCreateGlobalVector(mesh->meshDM,&intVecQoi);
 
     VecZeroEntries(X);
     VecDuplicate(X, &X_snap);

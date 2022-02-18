@@ -2,8 +2,8 @@
 
 //Periodic Boundary Case, KL expansion;
 static void forcing(double x, double y, double time, double output[], double samples[], int sampleSize){
-    output[0] = 100*samples[0]*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*exp(time);//-samples[1]*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*exp(time)-samples[2]/2.*std::cos(4.*M_PI*x)*std::sin(4.*M_PI*y)*exp(time)-samples[3]/2.*std::sin(4.*M_PI*x)*std::cos(4.*M_PI*y)*exp(time);
-    output[1] = -100*samples[0]*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*exp(time);//+samples[1]*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*exp(time)+samples[2]/2.*std::sin(4.*M_PI*x)*std::cos(4.*M_PI*y)*exp(time)+samples[3]/2.*std::cos(4.*M_PI*x)*std::sin(4.*M_PI*y)*exp(time);
+    output[0] = samples[0]*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*exp(time);//-samples[1]*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*exp(time)-samples[2]/2.*std::cos(4.*M_PI*x)*std::sin(4.*M_PI*y)*exp(time)-samples[3]/2.*std::sin(4.*M_PI*x)*std::cos(4.*M_PI*y)*exp(time);
+    output[1] = -samples[0]*std::sin(2.*M_PI*x)*std::cos(2.*M_PI*y)*exp(time);//+samples[1]*std::cos(2.*M_PI*x)*std::sin(2.*M_PI*y)*exp(time)+samples[2]/2.*std::sin(4.*M_PI*x)*std::cos(4.*M_PI*y)*exp(time)+samples[3]/2.*std::cos(4.*M_PI*x)*std::sin(4.*M_PI*y)*exp(time);
 };
 
 // static void forcing(double x, double y, double time, double output[], double samples[], int sampleSize){

@@ -3,15 +3,15 @@
 
 NSE2dSolver::NSE2dSolver(MPI_Comm comm_, int level_, int num_term_, double noiseVariance_):comm(comm_), level(level_), num_term(num_term_), noiseVariance(noiseVariance_){
     mesh      = new structureMesh2D(comm_, level_, 3, Q1);
-    obs       = 43.30310812; //-9.65649652758160; //-1.876536734487264; //
+    obs       = -1.876536734487264; //43.30310812; //-9.65649652758160; //-1.876536734487264; //
     timeSteps = std::pow(2, level_+1);
-	deltaT    = tMax/timeSteps;
+    deltaT    = tMax/timeSteps;
 
-	samples   = std::make_unique<double[]>(num_term_);
+    samples   = std::make_unique<double[]>(num_term_);
 
-	DMCreateGlobalVector(mesh->meshDM,&X);
-	DMCreateGlobalVector(mesh->meshDM,&intVecObs);
-	DMCreateGlobalVector(mesh->meshDM,&intVecQoi);
+    DMCreateGlobalVector(mesh->meshDM,&X);
+    DMCreateGlobalVector(mesh->meshDM,&intVecObs);
+    DMCreateGlobalVector(mesh->meshDM,&intVecQoi);
 
     VecZeroEntries(X);
     VecDuplicate(X, &X_snap);
@@ -23,7 +23,6 @@ NSE2dSolver::NSE2dSolver(MPI_Comm comm_, int level_, int num_term_, double noise
 void NSE2dSolver::updateGeneratorSeed(double seed_){
 	generator.seed(seed_);
 };
-
 
 void NSE2dSolver::LinearSystemSetup()
 {
@@ -43,7 +42,16 @@ void NSE2dSolver::LinearSystemSetup()
     MatAXPY(mesh->A,1.0,mesh->M, SAME_NONZERO_PATTERN);
     MatAXPY(mesh->A,1.0,Workspace, DIFFERENT_NONZERO_PATTERN);
 
+    //int is_size = mesh->vortex_num_per_row*mesh->vortex_num_per_column*2+mesh->vortex_num_per_row*mesh->vortex_num_per_column/4;
+    //int indices[is_size]; 
+    //for (int n=0; n<is_size; n++){
+    //	indices[n]=n;
+    //}   
+
+    //ISCreateGeneral(comm, is_size, indices, PETSC_COPY_VALUES, &isrowcol);
+
     MatDuplicate(mesh->A, MAT_DO_NOT_COPY_VALUES, &LHS);
+    //MatCreateSubMatrix(LHS, isrowcol, isrowcol, MAT_INITIAL_MATRIX, &LHS_sub);
     MatDestroy(&Workspace);
 }
 
@@ -51,15 +59,16 @@ void NSE2dSolver::LinearSystemSetup()
 void NSE2dSolver::SolverSetup(){
     LinearSystemSetup();
 
-	KSPCreate(comm, &ksp);
-	// KSPGetPC(ksp, &pc);
-	// PCSetType(pc, PCFIELDSPLIT);
-	// PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
-	// PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, NULL);
-	// KSPMonitorSet(ksp, MyKSPMonitor, NULL, 0);
-	KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
-	KSPSetFromOptions(ksp);
-	// KSPSetPC(ksp, pc);
+    KSPCreate(comm, &ksp);
+    KSPGetPC(ksp, &pc);
+    PCSetType(pc, PCFIELDSPLIT);
+    PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
+    //PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, NULL);
+    //KSPMonitorSet(ksp, MyKSPMonitor, NULL, 0);
+    PCSetFromOptions(pc);
+    KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
+    KSPSetFromOptions(ksp);
+    KSPSetPC(ksp, pc);
 }
 
 void NSE2dSolver::ForwardStep(){
@@ -74,8 +83,12 @@ void NSE2dSolver::ForwardStep(){
     AssembleF(mesh->f,mesh->meshDM,time,forcing,samples.get(),num_term);
     MatMultAdd(mesh->M, X, mesh->f, RHS);
 
-	KSPSetOperators(ksp,LHS,LHS);
-	KSPSolve(ksp, RHS, X);
+    //MatCreateSubMatrix(LHS, isrowcol, isrowcol, MAT_REUSE_MATRIX, &LHS_sub);
+    //MatView(LHS_sub, PETSC_VIEWER_STDOUT_WORLD);
+    KSPSetOperators(ksp,LHS,LHS);
+    //VecGetSubVector(RHS, isrowcol, &RHS_sub);
+    KSPSolve(ksp, RHS, X);
+    //VecRestoreSubVector(RHS, isrowcol, &RHS_sub);
 };
 
 void NSE2dSolver::solve(bool flag)
@@ -84,24 +97,24 @@ void NSE2dSolver::solve(bool flag)
 	time = 0.0;
 
 	for (int i = 0; i < timeSteps; ++i){
-		// std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
-		// std::clock_t c_start = std::clock();
-		// auto wcts = std::chrono::system_clock::now();	
+	    //std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
+	    //std::clock_t c_start = std::clock();
+            //auto wcts = std::chrono::system_clock::now();	
 
-		time = time+deltaT;
-		ForwardStep();
+	    time = time+deltaT;
+	    ForwardStep();
 
-		if (abs(time-0.5) <1e-6){
-            VecCopy(X, X_snap);
-            solve4QoI();
-			if (flag == 1){
-				return;
-			}
-		}	
-    // std::clock_t c_end = std::clock();
-    // double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
-    // std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
-    // std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;	
+	    if (abs(time-0.5) <1e-6){
+                VecCopy(X, X_snap);
+                solve4QoI();
+	        if (flag == 1){
+		    return;
+		}
+	    }	
+            //std::clock_t c_end = std::clock();
+            //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
+            //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
+            //std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;	
 	}
 	solve4Obs();
 };

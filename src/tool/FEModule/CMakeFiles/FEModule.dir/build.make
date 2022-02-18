@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/fenics/shared
+CMAKE_SOURCE_DIR = /home/shared
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/fenics/shared
+CMAKE_BINARY_DIR = /home/shared
 
 # Include any dependencies generated for this target.
 include src/tool/FEModule/CMakeFiles/FEModule.dir/depend.make
@@ -59,16 +59,16 @@ include src/tool/FEModule/CMakeFiles/FEModule.dir/flags.make
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o: src/tool/FEModule/CMakeFiles/FEModule.dir/flags.make
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o: src/tool/FEModule/FEModule.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/fenics/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FEModule.dir/FEModule.cpp.o -c /home/fenics/shared/src/tool/FEModule/FEModule.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o"
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FEModule.dir/FEModule.cpp.o -c /home/shared/src/tool/FEModule/FEModule.cpp
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/FEModule.dir/FEModule.cpp.i"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/fenics/shared/src/tool/FEModule/FEModule.cpp > CMakeFiles/FEModule.dir/FEModule.cpp.i
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/tool/FEModule/FEModule.cpp > CMakeFiles/FEModule.dir/FEModule.cpp.i
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/FEModule.dir/FEModule.cpp.s"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/fenics/shared/src/tool/FEModule/FEModule.cpp -o CMakeFiles/FEModule.dir/FEModule.cpp.s
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/tool/FEModule/FEModule.cpp -o CMakeFiles/FEModule.dir/FEModule.cpp.s
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o.requires:
 
@@ -83,16 +83,16 @@ src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule.cpp.o.provides.build: src/too
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o: src/tool/FEModule/CMakeFiles/FEModule.dir/flags.make
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o: src/tool/FEModule/FEModule2dMixed.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/fenics/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o -c /home/fenics/shared/src/tool/FEModule/FEModule2dMixed.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o"
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o -c /home/shared/src/tool/FEModule/FEModule2dMixed.cpp
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.i"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/fenics/shared/src/tool/FEModule/FEModule2dMixed.cpp > CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.i
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/tool/FEModule/FEModule2dMixed.cpp > CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.i
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.s"
-	cd /home/fenics/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/fenics/shared/src/tool/FEModule/FEModule2dMixed.cpp -o CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.s
+	cd /home/shared/src/tool/FEModule && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/tool/FEModule/FEModule2dMixed.cpp -o CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.s
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o.requires:
 
@@ -117,9 +117,9 @@ src/tool/FEModule/libFEModule.a: src/tool/FEModule/CMakeFiles/FEModule.dir/FEMod
 src/tool/FEModule/libFEModule.a: src/tool/FEModule/CMakeFiles/FEModule.dir/FEModule2dMixed.cpp.o
 src/tool/FEModule/libFEModule.a: src/tool/FEModule/CMakeFiles/FEModule.dir/build.make
 src/tool/FEModule/libFEModule.a: src/tool/FEModule/CMakeFiles/FEModule.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/fenics/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libFEModule.a"
-	cd /home/fenics/shared/src/tool/FEModule && $(CMAKE_COMMAND) -P CMakeFiles/FEModule.dir/cmake_clean_target.cmake
-	cd /home/fenics/shared/src/tool/FEModule && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/FEModule.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libFEModule.a"
+	cd /home/shared/src/tool/FEModule && $(CMAKE_COMMAND) -P CMakeFiles/FEModule.dir/cmake_clean_target.cmake
+	cd /home/shared/src/tool/FEModule && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/FEModule.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/tool/FEModule/CMakeFiles/FEModule.dir/build: src/tool/FEModule/libFEModule.a
@@ -132,10 +132,10 @@ src/tool/FEModule/CMakeFiles/FEModule.dir/requires: src/tool/FEModule/CMakeFiles
 .PHONY : src/tool/FEModule/CMakeFiles/FEModule.dir/requires
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/clean:
-	cd /home/fenics/shared/src/tool/FEModule && $(CMAKE_COMMAND) -P CMakeFiles/FEModule.dir/cmake_clean.cmake
+	cd /home/shared/src/tool/FEModule && $(CMAKE_COMMAND) -P CMakeFiles/FEModule.dir/cmake_clean.cmake
 .PHONY : src/tool/FEModule/CMakeFiles/FEModule.dir/clean
 
 src/tool/FEModule/CMakeFiles/FEModule.dir/depend:
-	cd /home/fenics/shared && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/fenics/shared /home/fenics/shared/src/tool/FEModule /home/fenics/shared /home/fenics/shared/src/tool/FEModule /home/fenics/shared/src/tool/FEModule/CMakeFiles/FEModule.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/shared && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/shared /home/shared/src/tool/FEModule /home/shared /home/shared/src/tool/FEModule /home/shared/src/tool/FEModule/CMakeFiles/FEModule.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/tool/FEModule/CMakeFiles/FEModule.dir/depend
 

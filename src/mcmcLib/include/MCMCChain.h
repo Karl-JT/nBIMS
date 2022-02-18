@@ -93,7 +93,7 @@ void MCMCChain<samplerType, solverType>::runStep(std::default_random_engine* gen
 	chainIdx += 1;
 	sampleProposal();
 	solver->solve();
-    std::cout << solver->samples[0] << " " << std::endl;
+    // std::cout << solver->samples[0] << " " << std::endl;
     updatelnLikelihood();
 	checkAcceptance(generator);
 	if (accepted == 1){

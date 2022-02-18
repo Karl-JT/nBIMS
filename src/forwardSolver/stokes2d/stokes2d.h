@@ -25,12 +25,12 @@ public:
     structureMesh2D*   mesh;
     VortexDOF**        states;
 
-	int stabOption=0;
-	int level,timeSteps,num_term,rank;
-	double nu = 0.1;
-	double time=0.0,tMax=1.0,deltaT;
-	double obs,noiseVariance;
-	double beta = 1.0;
+    int stabOption=0;
+    int level,timeSteps,num_term,rank;
+    double nu = 0.1;
+    double time=0.0,tMax=1.0,deltaT;
+    double obs,noiseVariance;
+    double beta = 1.0;
 
     std::unique_ptr<double[]> samples;
     std::unique_ptr<double[]> ux;

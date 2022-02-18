@@ -167,7 +167,12 @@ structureMesh2D::structureMesh2D(MPI_Comm comm_, int level_, int dof_, ELEMENT_T
         }
     }
 
-	DMCreateGlobalVector(meshDM, &f);
+    //int n_size = vortex_num_per_row*vortex_num_per_column*3;
+    //for(int n=0; n < n_size; n++){
+    //    MatSetValue(A, n, n, 0, INSERT_VALUES);
+    //}
+
+    DMCreateGlobalVector(meshDM, &f);
     VecZeroEntries(f);
 };
 
@@ -799,6 +804,7 @@ void AssembleM(Mat M, DM meshDM)
             MatSetValuesStencil(M,4,u_eqn,4,u_eqn,Me,ADD_VALUES);
 		}
 	}
+    
     MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY);
     DMDAVecRestoreArray(cda,coords,&_coords);

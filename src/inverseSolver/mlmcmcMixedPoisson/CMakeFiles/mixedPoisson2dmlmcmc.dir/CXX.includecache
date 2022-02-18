@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/fenics/shared/src/inverseSolver/mlmcmcMixedPoisson/mlmcmcMixedPoisson.cpp
+/home/shared/src/inverseSolver/mlmcmcMixedPoisson/mlmcmcMixedPoisson.cpp
 iostream
 -
 string

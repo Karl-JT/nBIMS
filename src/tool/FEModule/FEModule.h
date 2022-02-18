@@ -26,7 +26,7 @@ public:
 	int level;
 	int dof;
 	int vortex_num_per_row;
-    int vortex_num_per_column;
+        int vortex_num_per_column;
 	int ngp; 
 
 	Mat M,A,G,Q,C,J,D,P;

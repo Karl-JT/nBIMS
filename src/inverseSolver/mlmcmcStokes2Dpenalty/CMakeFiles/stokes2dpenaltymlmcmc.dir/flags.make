@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -Werror -g -std=gnu++14
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -I/usr/include/eigen3 -I/usr/local/petsc-32/include -I/home/fenics/shared/src/inverseSolver/mlmcmcStokes2Dpenalty -I/home/fenics/shared/src/tool/IO -I/home/fenics/shared/src/tool/FEModule -I/usr/include/mpich -I/home/fenics/shared/src/tool/numericalRecipes -I/home/fenics/shared/src/forwardSolver/stokes2d -I/home/fenics/shared/src/mcmcLib/include 
+CXX_INCLUDES = -I/usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -I/usr/include/eigen3 -I/usr/local/petsc-32/include -I/home/shared/src/inverseSolver/mlmcmcStokes2Dpenalty -I/home/shared/src/tool/IO -I/home/shared/src/tool/FEModule -I/usr/include/mpich -I/home/shared/src/tool/numericalRecipes -I/home/shared/src/forwardSolver/stokes2d -I/home/shared/src/mcmcLib/include 
 

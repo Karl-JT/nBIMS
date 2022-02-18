@@ -376,14 +376,14 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::updateQoI(){
 	this->PhiLower = -samplerLower->lnLikelihood();
 	this->QoI[0] = (1-exp(this->PhiUpper-this->PhiLower))*solver0->solve4QoI();
 	QoI2[0] = (exp(this->PhiUpper-this->PhiLower)-1);
-	// std::cout << "phiupper and lower: " << this->PhiUpper << " " << this->PhiLower << " " << this->QoI[0] << " " << QoI2[0] << std::endl;
+	//std::cout << "phiupper and lower: " << this->PhiUpper << " " << this->PhiLower << " " << this->QoI[0] << " " << QoI2[0] << std::endl;
 }
 
 template <typename samplerType, typename solverType> 
 void MLChain_Uni_i0Upper<samplerType, solverType>::runStep(std::default_random_engine* generator){
 	this->chainIdx += 1;
 	this->sampleProposal();
-	std::cout << "m =" << this->solver->samples[0] << std::endl;
+	//std::cout << "m =" << this->solver->samples[0] << std::endl;
 	this->solver->solve();
 	this->updatelnLikelihood();
 	this->checkAcceptance(generator);
@@ -399,7 +399,7 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::runStep(std::default_random_e
 		this->QoIsum[0] += this->QoI[0];
 		QoI2sum[0] += QoI2[0];
 	}
-    std::cout << QoI2sum[0] << std::endl;
+        //std::cout << QoI2[0] << " " << QoI2sum[0] << std::endl;
 	this->acceptanceRate = this->acceptedNum/this->chainIdx;
 }
 

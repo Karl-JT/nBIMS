@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -Werror -g -std=gnu++14
 
 CXX_DEFINES = -DDOLFIN_VERSION=\"2019.1.0\" -DHAS_CHOLMOD -DHAS_HDF5 -DHAS_MPI -DHAS_PETSC -DHAS_SCOTCH -DHAS_SLEPC -DHAS_UMFPACK -DHAS_ZLIB -DNDEBUG -D_FORTIFY_SOURCE=2
 
-CXX_INCLUDES = -isystem /usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -isystem /usr/include/eigen3 -I/home/fenics/shared/src/inverseSolver/mlmcmcMixedPoissonPEERS -I/home/fenics/shared/src/tool/IO -I/home/fenics/shared/src/forwardSolver/elasticMixed2dRT -I/usr/local/include -isystem /usr/include/hdf5/mpich -isystem /usr/include/mpich -isystem /usr/local/petsc-32/include -isystem /usr/local/slepc-32/include -I/home/fenics/shared/src/tool/numericalRecipes -I/home/fenics/shared/src/mcmcLib/include 
+CXX_INCLUDES = -isystem /usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -isystem /usr/include/eigen3 -I/home/shared/src/inverseSolver/mlmcmcMixedPoissonPEERS -I/home/shared/src/tool/IO -I/home/shared/src/forwardSolver/elasticMixed2dRT -I/usr/local/include -isystem /usr/include/hdf5/mpich -isystem /usr/include/mpich -isystem /usr/local/petsc-32/include -isystem /usr/local/slepc-32/include -I/home/shared/src/tool/numericalRecipes -I/home/shared/src/mcmcLib/include 
 

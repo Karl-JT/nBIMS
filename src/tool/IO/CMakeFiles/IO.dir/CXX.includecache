@@ -6,11 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/fenics/shared/src/tool/IO/confIO.cpp
+/home/shared/src/tool/IO/confIO.cpp
 confIO.h
-/home/fenics/shared/src/tool/IO/confIO.h
+/home/shared/src/tool/IO/confIO.h
 
-/home/fenics/shared/src/tool/IO/confIO.h
+/home/shared/src/tool/IO/confIO.h
 iostream
 -
 vector
@@ -22,11 +22,11 @@ sstream
 algorithm
 -
 
-/home/fenics/shared/src/tool/IO/dataIO.cpp
+/home/shared/src/tool/IO/dataIO.cpp
 dataIO.h
-/home/fenics/shared/src/tool/IO/dataIO.h
+/home/shared/src/tool/IO/dataIO.h
 
-/home/fenics/shared/src/tool/IO/dataIO.h
+/home/shared/src/tool/IO/dataIO.h
 iostream
 -
 fstream

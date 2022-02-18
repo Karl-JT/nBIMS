@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <mpi.h>
 #include <petsc.h>
+#include <time.h>
 
 #include <confIO.h>
 #include <nse2d.h>
@@ -36,32 +37,36 @@ int main(int argc, char* argv[])
 	int rank;
 	int size;
 
-	// // Solver Options List 1
-	// PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
-	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
+        // Solver Options List 1
+	PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
+        //PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
+	PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
+        //PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "gmres");
+        //PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "none");
+        //PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "gmres");
 
-	// // Solver Options List 2
+	// Solver Options List 2
 	// PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
 	// PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
 	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "lu");
 	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_factor_mat_solver_type", "mumps");
 	// PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
 
-	// // Solver Options List 3
-	// PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
-	// PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
-	// PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
-	// PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
-	// PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "jacobi");
-	// PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
+	// Solver Options List 3
+	//PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
+	//PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "jacobi");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "gamg");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
 
 	// Solver Options List 4 direct solver mumps
-	PetscOptionsSetValue(NULL, "-ksp_type", "preonly");
-	PetscOptionsSetValue(NULL, "-ksp_error_if_not_converged", "1");
-	PetscOptionsSetValue(NULL, "-pc_type", "lu");
-	PetscOptionsSetValue(NULL, "-pc_factor_mat_solver_type", "mumps");
-	PetscOptionsSetValue(NULL, "-mat_mumps_icntl_24", "1");
-	PetscOptionsSetValue(NULL, "-mat_mumps_cntl_3", "1e-12");
+	//PetscOptionsSetValue(NULL, "-ksp_type", "preonly");
+	//PetscOptionsSetValue(NULL, "-ksp_error_if_not_converged", "1");
+	//PetscOptionsSetValue(NULL, "-pc_type", "lu");
+	//PetscOptionsSetValue(NULL, "-pc_factor_mat_solver_type", "mumps");
+	//PetscOptionsSetValue(NULL, "-mat_mumps_icntl_24", "1");
+	//PetscOptionsSetValue(NULL, "-mat_mumps_cntl_3", "1e-12");
 
 	PetscInitialize(&argc, &argv, NULL, NULL);
 	MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -77,9 +82,16 @@ int main(int argc, char* argv[])
 	switch (confData.task){
         case 0: //Generate Observation
         {
+            //clock_t start, end;
+            //double cpu_time_used;
+
+            //start = clock();
             NSE2dSolver singleForwardSolver(PETSC_COMM_SELF, confData.levels, confData.num_term,confData.noiseVariance);
             singleForwardSolver.samples[0]=confData.rand_coef[0];
             singleForwardSolver.solve(0);
+	    //end=clock();
+            //cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+            //std::cout << "cpu_time_used: " << cpu_time_used << std::endl; 
             std::cout << singleForwardSolver.ObsOutput() << std::endl;
             std::cout << singleForwardSolver.QoiOutput() << std::endl;
             break;

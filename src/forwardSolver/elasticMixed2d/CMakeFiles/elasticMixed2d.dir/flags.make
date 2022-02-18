@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -Werror -g -std=gnu++14
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -I/usr/include/eigen3 -I/home/fenics/shared/src/forwardSolver/elasticMixed2d -I/home/fenics/shared/src/tool/FEModule -I/usr/include/mpich -I/usr/local/petsc-32/include -I/home/fenics/shared/src/tool/numericalRecipes 
+CXX_INCLUDES = -I/usr/local/lib/python3.6/dist-packages/ffc/backends/ufc -I/usr/local/petsc-32/lib -I/usr/include/eigen3 -I/home/shared/src/forwardSolver/elasticMixed2d -I/home/shared/src/tool/FEModule -I/usr/include/mpich -I/usr/local/petsc-32/include -I/home/shared/src/tool/numericalRecipes 
 

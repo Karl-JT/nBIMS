@@ -20,14 +20,15 @@ find_package(GSL REQUIRED)
 include_directories(${GSL_INCLUDE_DIRS})
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIRS})
+find_package(DOLFINX REQUIRED)
 
 # find_package(MPI REQUIRED)
 
-# find_package(PkgConfig REQUIRED)
+find_package(PkgConfig REQUIRED)
 # set(ENV{PKG_CONFIG_PATH} /usr/local/petsc-32/lib/pkgconfig/:/usr/local/lib/pkgconfig/:$ENV{PKG_CONFIG_PATH})
-# pkg_search_module(DOLFIN REQUIRED dolfin)
+# pkg_search_module(DOLFINX REQUIRED dolfinx)
 # pkg_search_module(PETSC REQUIRED PETSc)
-# include(${DOLFIN_USE_FILE})
+#include(${DOLFIN_USE_FILE})
 
 #add_subdirectory(include/LBFGS/include)
 add_subdirectory(src/tool/IO)

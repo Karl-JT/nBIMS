@@ -7,7 +7,7 @@ RUN cd /usr/local/ && apt-get update && apt-get install -y cmake libbz2-dev libb
 && make PETSC_DIR=/usr/local/petsc PETSC_ARCH=arch-linux-c-opt install \
 && rm -rf /usr/local/petsc/ \
 && cd /usr/local && git clone --branch release https://BachelorDog@bitbucket.org/fenics-project/ffc.git \
-&& cd ffc && pip install --prefix=/usr/local . && rm -rf /usr/local/ffc 
+&& cd ffc && pip install --prefix=/usr/local . && rm -rf /usr/local/ffc \ 
 && cd /usr/local && git clone --branch release https://BachelorDog@bitbucket.org/fenics-project/dolfin.git \
 && cd dolfin && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make install \
-&& rm -rf /usr/local/dolfin  && source /usr/local/share/dolfin/dolfin.conf
+&& rm -rf /usr/local/dolfin

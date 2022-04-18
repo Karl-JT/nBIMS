@@ -1,0 +1,16 @@
+#Mixed Method of Hellinger and Reissner
+
+TR  = FiniteElement("RT", triangle, 1)
+B3  = FiniteElement("Bubble", triangle, 3)
+DG0 = VectorElement("DG", triangle, 0)
+CG1 = FiniteElement("CG", triangle, 1)
+
+PEERS = MixedElement([TR, B3, TR, B3, DG0, CG1])
+
+solution = Coefficient(PEERS)
+
+vCG1 = VectorElement("CG", triangle, 1)
+x = Coefficient(vCG1)
+
+form1 = (x[1]**0.5*(solution[0]+solution[2].dx(1))+x[0]**0.5*(solution[4]+solution[5].dx(0)))*dx
+forms = [form1]

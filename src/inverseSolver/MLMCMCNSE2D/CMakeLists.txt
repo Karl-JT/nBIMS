@@ -16,11 +16,12 @@ target_link_libraries( nse2dmlmcmc PUBLIC
             FEModule
             numericalRecipes
             mcmcLib
-			mpi
-			petsc
-			)
+	    mpi
+	    petsc
+	    ${MPI_CXX_LIBRARIES}		)
 
 target_include_directories(	nse2dmlmcmc PUBLIC 
 				${CMAKE_CURRENT_SOURCE_DIR} 
 				${PETSC_INCLUDE_DIRS}
+				${PESTC_CXX_INCLUDE_PATH}
 				)

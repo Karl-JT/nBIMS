@@ -16,11 +16,13 @@ target_link_libraries( stokes2dmlmcmc PUBLIC
             stokes2dsolver
             numericalRecipes
             mcmcLib
-			mpi
-			petsc
+	    mpi
+	    petsc
+	    ${MPI_CXX_LIBRARIES}
 			)
 
 target_include_directories(	stokes2dmlmcmc PUBLIC 
 				${CMAKE_CURRENT_SOURCE_DIR} 
 				${PETSC_INCLUDE_DIRS}
+				${MPI_CXX_INCLUDE_PATH}
 				)

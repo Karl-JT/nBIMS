@@ -15,8 +15,10 @@ target_link_libraries( mixedPoisson2dmlmcmc PUBLIC
             elasticMixed2d
             numericalRecipes
             mcmcLib
+	    ${MPI_CXX_LIBRARIES}
 			)
 
 target_include_directories(	mixedPoisson2dmlmcmc PUBLIC 
 				${CMAKE_CURRENT_SOURCE_DIR} 
+				${MPI_CXX_INCLUDE_PATH}
 				)

@@ -83,6 +83,8 @@ bin/nse2dmlmcmc: src/tool/IO/libIO.a
 bin/nse2dmlmcmc: src/forwardSolver/navierstokes2d/libnse2dsolver.a
 bin/nse2dmlmcmc: src/tool/FEModule/libFEModule.a
 bin/nse2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
+bin/nse2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so
+bin/nse2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
 bin/nse2dmlmcmc: /usr/local/lib/libgsl.so
 bin/nse2dmlmcmc: /usr/local/lib/libgslcblas.so
 bin/nse2dmlmcmc: src/inverseSolver/MLMCMCNSE2D/CMakeFiles/nse2dmlmcmc.dir/link.txt

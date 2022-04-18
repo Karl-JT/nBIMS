@@ -54,7 +54,7 @@ class ForceC1 : public Expression
 
 class mixedPoissonSolver{
 private:
-	std::shared_ptr<UnitSquareMesh> geoMesh;	
+    std::shared_ptr<UnitSquareMesh> geoMesh;	
     std::shared_ptr<MixedPoisson::FunctionSpace> W;
     std::shared_ptr<MixedPoisson::BilinearForm> a;
     std::shared_ptr<MixedPoisson::LinearForm> L;

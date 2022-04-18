@@ -84,6 +84,11 @@ bin/PEERS2dmlmcmc: src/forwardSolver/elasticMixed2dRT/libelasticMixed2dRT.a
 bin/PEERS2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
 bin/PEERS2dmlmcmc: /usr/local/lib/libgsl.so
 bin/PEERS2dmlmcmc: /usr/local/lib/libgslcblas.so
+bin/PEERS2dmlmcmc: /usr/local/lib/libdolfin.so.2019.1.0
+bin/PEERS2dmlmcmc: /usr/lib/x86_64-linux-gnu/libboost_timer.so.1.71.0
+bin/PEERS2dmlmcmc: /usr/lib/x86_64-linux-gnu/libboost_chrono.so.1.71.0
+bin/PEERS2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so
+bin/PEERS2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
 bin/PEERS2dmlmcmc: src/inverseSolver/mlmcmcMixedPoissonPEERS/CMakeFiles/PEERS2dmlmcmc.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable ../../../bin/PEERS2dmlmcmc"
 	cd /home/shared/src/inverseSolver/mlmcmcMixedPoissonPEERS && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/PEERS2dmlmcmc.dir/link.txt --verbose=$(VERBOSE)

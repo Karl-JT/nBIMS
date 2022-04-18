@@ -12,10 +12,10 @@ set_property(TARGET elasticMixed2dRT PROPERTY CXX_STANDARD 14)
 
 target_link_libraries( elasticMixed2dRT PUBLIC
             numericalRecipes
+	    dolfin
 			)
 
 target_include_directories(	elasticMixed2dRT PUBLIC 
 				${CMAKE_CURRENT_SOURCE_DIR} 
+				${DOLFIN_INCLUDE_DIRS}
 				)
-
-

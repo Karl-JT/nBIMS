@@ -83,6 +83,8 @@ bin/stokes2dmlmcmc: src/tool/IO/libIO.a
 bin/stokes2dmlmcmc: src/tool/FEModule/libFEModule.a
 bin/stokes2dmlmcmc: src/forwardSolver/stokes2d/libstokes2dsolver.a
 bin/stokes2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
+bin/stokes2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so
+bin/stokes2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
 bin/stokes2dmlmcmc: src/tool/FEModule/libFEModule.a
 bin/stokes2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
 bin/stokes2dmlmcmc: /usr/local/lib/libgsl.so

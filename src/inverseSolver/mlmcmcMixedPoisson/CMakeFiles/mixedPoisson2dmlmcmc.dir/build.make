@@ -83,6 +83,8 @@ bin/mixedPoisson2dmlmcmc: src/tool/IO/libIO.a
 bin/mixedPoisson2dmlmcmc: src/tool/FEModule/libFEModule.a
 bin/mixedPoisson2dmlmcmc: src/forwardSolver/elasticMixed2d/libelasticMixed2d.a
 bin/mixedPoisson2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
+bin/mixedPoisson2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so
+bin/mixedPoisson2dmlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
 bin/mixedPoisson2dmlmcmc: src/tool/FEModule/libFEModule.a
 bin/mixedPoisson2dmlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
 bin/mixedPoisson2dmlmcmc: /usr/local/lib/libgsl.so

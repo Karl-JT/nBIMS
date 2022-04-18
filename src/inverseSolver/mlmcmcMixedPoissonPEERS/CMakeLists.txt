@@ -11,9 +11,11 @@ target_link_libraries( PEERS2dmlmcmc PUBLIC
             elasticMixed2dRT
             numericalRecipes
             mcmcLib
+	    PETSC
 			)
 
 target_include_directories(	PEERS2dmlmcmc PUBLIC 
 				${CMAKE_CURRENT_SOURCE_DIR} 
 				${DOLFIN_INCLUDE_DIRS}
+				${PETSC_INCLUDE_DIRS}
 				)

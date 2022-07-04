@@ -30,8 +30,8 @@ mixedPoissonSolver::mixedPoissonSolver(MPI_Comm comm_, int level_, int num_term_
 
     geoMesh = std::make_shared<UnitSquareMesh>(comm_,nx,ny,"left");
 
-    obs =     6.008514619642654;//2.432009397737586; //-1.374767714059374;//-1.725570585139927;
-	samples = std::make_unique<double[]>(num_term);
+    obs = 6.008514619642654;//2.432009397737586; //-1.374767714059374;//-1.725570585139927;
+    samples = std::make_unique<double[]>(num_term);
 
     SolverSetup();
 };
@@ -91,8 +91,14 @@ void mixedPoissonSolver::solve(bool flag)
     PETScKrylovSolver solver(comm); 
     solver.set_operator(A);
     solver.set_from_options();
+    //std::clock_t c_start = std::clock();
+    //auto wcts = std::chrono::system_clock::now();
     solver.solve(*(w->vector()), *b);
-    // solver.str(1);
+    //std::clock_t c_end = std::clock();
+    //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
+    //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
+    //std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;
+    //solver.str(1);
 
     intU1->solution = w;
     intU2->solution = w;
@@ -112,7 +118,7 @@ void mixedPoissonSolver::solve(bool flag)
 
 void mixedPoissonSolver::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)
 {
-	switch(flag){
+    switch(flag){
         case UNIFORM:
             initialSamples[0] = uniformDistribution(generator);
             break;

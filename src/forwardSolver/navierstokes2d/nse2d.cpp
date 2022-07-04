@@ -3,7 +3,7 @@
 
 NSE2dSolver::NSE2dSolver(MPI_Comm comm_, int level_, int num_term_, double noiseVariance_):comm(comm_), level(level_), num_term(num_term_), noiseVariance(noiseVariance_){
     mesh      = new structureMesh2D(comm_, level_, 3, Q1);
-    obs       = -1.876536734487264; //43.30310812; //-9.65649652758160; //-1.876536734487264; //
+    obs       = 43.30310812; //-9.65649652758160; //-1.876536734487264; //
     timeSteps = std::pow(2, level_+1);
     deltaT    = tMax/timeSteps;
 

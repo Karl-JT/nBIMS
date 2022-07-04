@@ -81,13 +81,12 @@ private:
     std::shared_ptr<Matrix> A;
     std::shared_ptr<Vector> b;
 
-
 public:
     MPI_Comm comm;
 
     int level;
-	int nx;
-	int ny;
+    int nx;
+    int ny;
 
 	// double point0[2] = {0.0,0.0};
 	// double point1[2] = {1.0,1.0};
@@ -98,7 +97,7 @@ public:
     int    num_term;
     int    rank;
     double obs,noiseVariance;
-	double beta = 1.0;
+    double beta = 1.0;
 
     std::unique_ptr<double[]> samples;
     

@@ -9,7 +9,7 @@ public:
 
 	int sampleSize;
 	double stepSize;
-    double* buffer;
+        double* buffer;
 
 	pCN(T* forwardSolver_, int sampleSize_ = 1, double stepSize_ = 1.0) : forwardSolver(forwardSolver_), sampleSize(sampleSize_), stepSize(stepSize_){
         buffer = new double[sampleSize_];
@@ -19,7 +19,7 @@ public:
     };
 
 	void sampleProposal();
-    void restoreSample();
+        void restoreSample();
 	double getAlpha(double lnLikelihoodt0, double lnLikelihoodt1);
 };
 
@@ -38,7 +38,7 @@ void pCN<T>::sampleProposal(){
 template <typename T>
 void pCN<T>::restoreSample(){
 	for (int i = 0; i < sampleSize; ++i){
-        forwardSolver->samples[i] = buffer[i];
+            forwardSolver->samples[i] = buffer[i];
 	}
 }
 

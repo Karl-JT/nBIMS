@@ -7,7 +7,7 @@ template <typename samplerType, typename solverType>
 class MCMCChain : public MCMCBase {
 public:
 	int chainIdx = 0;
-	int numBurnin = 0;
+	int numBurnin = 5;
 	int maxChainLength;	
 	int sampleSize;
 	double alpha;
@@ -22,8 +22,8 @@ public:
 
 	MCMCChain(int maxChainLength_, int sampleSize_, solverType* solver_, double beta_=1.0) : maxChainLength(maxChainLength_+numBurnin), sampleSize(sampleSize_), solver(solver_){
         sampler = new samplerType(solver_, sampleSize_, beta_);
-		QoI = new double[sampleSize_];
-		QoIsum = new double[sampleSize_];
+	QoI = new double[sampleSize_];
+	QoIsum = new double[sampleSize_];
 	};
 	virtual ~MCMCChain(){
 		delete sampler;
@@ -42,7 +42,7 @@ public:
 
 template <typename samplerType, typename solverType> 
 void MCMCChain<samplerType, solverType>::chainInit(std::default_random_engine* generator){
-    chainIdx=0;
+    	chainIdx=0;
 	double initialSample[sampleSize];
 	solver->updateGeneratorSeed(1000*uniform_distribution(*generator));
 	solver->priorSample(initialSample);
@@ -78,13 +78,13 @@ void MCMCChain<samplerType, solverType>::checkAcceptance(std::default_random_eng
 	alpha = sampler->getAlpha(lnLikelihoodt0, lnLikelihoodt1);
 	alphaUni = log(uniform_distribution(*generator));
 	if (alphaUni < alpha){
-		// std::cout << "sample accpeted" << std::endl;
+		//std::cout << "sample accpeted" << std::endl;
 		accepted = 1;
 		acceptedNum += 1;
 	} else {
-		// std::cout << "sample rejected" << std::endl;
+		//std::cout << "sample rejected" << std::endl;
 		accepted = 0;
-        sampler->restoreSample();
+        	sampler->restoreSample();
 	}
 }
 
@@ -101,8 +101,8 @@ void MCMCChain<samplerType, solverType>::runStep(std::default_random_engine* gen
 		updateQoI();
 	}
 	if (chainIdx > numBurnin){
-		QoIsum[0] += QoI[0];
-        // std::cout << "MCMCChain " << QoI[0] << std::endl;
+	    QoIsum[0] += QoI[0];
+            //std::cout << "MCMCChain " << QoI[0] << std::endl;
 	}
 	acceptanceRate = acceptedNum/chainIdx;
 }
@@ -114,8 +114,6 @@ void MCMCChain<samplerType, solverType>::run(double QoImean[], std::default_rand
 	for (int i = 1; i < maxChainLength+1; ++i){
 		runStep(generator);
 	}
-	for (int i = 0; i < sampleSize; ++i){
-		QoImean[i] = QoIsum[i]/(maxChainLength-numBurnin);
-	}
+	QoImean[0] = QoIsum[0]/(maxChainLength-numBurnin);
 	std::cout << "acceptanceRate: " << acceptanceRate << std::endl;
 }

@@ -1,8 +1,0 @@
-rpl_malloc.lo: rpl_malloc.c /usr/include/stdc-predef.h rpl_malloc.h \
- config.h
-
-/usr/include/stdc-predef.h:
-
-rpl_malloc.h:
-
-config.h:

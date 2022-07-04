@@ -83,8 +83,7 @@ bin/stokes2dpenaltymlmcmc: src/tool/IO/libIO.a
 bin/stokes2dpenaltymlmcmc: src/tool/FEModule/libFEModule.a
 bin/stokes2dpenaltymlmcmc: src/forwardSolver/stokes2d/libstokes2dsolver.a
 bin/stokes2dpenaltymlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
-bin/stokes2dpenaltymlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so
-bin/stokes2dpenaltymlmcmc: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
+bin/stokes2dpenaltymlmcmc: /usr/local/lib/libmpi.so
 bin/stokes2dpenaltymlmcmc: src/tool/FEModule/libFEModule.a
 bin/stokes2dpenaltymlmcmc: src/tool/numericalRecipes/libnumericalRecipes.a
 bin/stokes2dpenaltymlmcmc: /usr/local/lib/libgsl.so

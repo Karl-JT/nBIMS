@@ -47,6 +47,16 @@ int main(int argc, char* argv[])
 	PetscOptionsSetValue(NULL, "-mat_mumps_icntl_24", "1");
 	PetscOptionsSetValue(NULL, "-mat_mumps_cntl_3", "1e-16");
 
+	//PetscOptionsSetValue(NULL, "-pc_fieldsplit_detect_saddle_point", "1");
+	//PetscOptionsSetValue(NULL, "-ksp_initial_guess_nonzero", "1");
+	//PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
+	//PetscOptionsSetValue(NULL, "-pc_type", "fieldsplit");
+	//PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "schur");
+	//PetscOptionsSetValue(NULL, "-pc_fieldsplit_schur_fact_type", "full");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "cg");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "cg");
+
 	MPI_Init(&argc, &argv);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -58,6 +68,9 @@ int main(int argc, char* argv[])
         display_config(&confData);
 	}
 
+        std::clock_t c_start_total = std::clock();
+        auto wcts_total = std::chrono::system_clock::now();
+
 	switch (confData.task){
         case 0: //Generate Observation
         {
@@ -65,10 +78,23 @@ int main(int argc, char* argv[])
             singleForwardSolver.samples[0]=confData.rand_coef[0];
             singleForwardSolver.solve();
 
-            std::cout << singleForwardSolver.ObsOutput() << std::endl;
-            std::cout << singleForwardSolver.QoiOutput() << std::endl;
+            //std::cout << singleForwardSolver.ObsOutput() << std::endl;
+            //std::cout << singleForwardSolver.QoiOutput() << std::endl;
 
             MPI_Barrier(MPI_COMM_WORLD);
+            break;
+        }
+
+        case 1:  //plain MCMC
+        {
+            std::default_random_engine generator;
+            generator.seed(confData.randomSeed);
+            double qoimean;
+            mixedPoissonSolver singleForwardSolver(MPI_COMM_SELF, confData.levels, confData.num_term,confData.noiseVariance);
+            MCMCChain<pCN<mixedPoissonSolver>, mixedPoissonSolver> plainMCMCSolver(confData.plainMCMC_sample_number, confData.num_term, &singleForwardSolver, confData.pCNstep);
+            plainMCMCSolver.chainInit(&generator);
+            plainMCMCSolver.run(&qoimean, &generator);
+            std::cout << "qoi: " << qoimean << std::endl;
             break;
         }
 
@@ -217,6 +243,10 @@ int main(int argc, char* argv[])
             break;
         }
 	}
-	MPI_Finalize();
+        std::clock_t c_end_total = std::clock();
+        double time_elapsed_ms_total = (c_end_total-c_start_total)/ (double)CLOCKS_PER_SEC;
+        std::chrono::duration<double> wctduration_total = (std::chrono::system_clock::now() - wcts_total);
+        std::cout << "wall time " << wctduration_total.count() << " cpu time: " << time_elapsed_ms_total << std::endl;
+	//MPI_Finalize();
 	return 0;    
 }

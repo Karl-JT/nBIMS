@@ -10,7 +10,7 @@ class MLMCMC_Bi{
 private:
 public:
 	MPI_Comm PSubComm;
-	int levels,sampleSize,M,rank,subRank,a,subSize;
+	int levels,sampleSize,M,rank,subRank,a,subSize,baseNum=10;
 	double noiseVariance,randomSeed,beta,out;
 	double *mean,*L,*A1,*A2,*A3,*A4,*A5,*A6,*A7,*A8;
 	std::default_random_engine generator;
@@ -67,6 +67,7 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
         M = (int) pow(2.0, 2.0*levels)/pow(log(levels), 2);    	
     }	
     M = (int) std::max(1, M);		    
+    M = M*baseNum;
 
     for (int i = 0; i < levels+1; ++i){
         L[i] = 0;
@@ -96,7 +97,8 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
         } else if (a == 4){
             M = (int) pow(levels, 2)*pow(2, 2*(levels-subRank-1));
         }
-        M = (int) std::max(1, M);		    
+        M = (int) std::max(1, M);		  
+	M = M*baseNum;  
         MLChain0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[subRank+1].get(), solvers[subRank].get(), beta);
         chain0i.run(mean, &generator);
         L[0] += mean[0];
@@ -112,6 +114,7 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
             } else if (a == 4){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
             }
+	    M=M*baseNum;
             MLChain0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[i].get(), solvers[i-1].get(), beta);
             chain0i.run(mean, &generator);
             L[0] += mean[0];
@@ -130,7 +133,8 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
             M = (int) pow(levels, 1)*pow(2, 2*(levels-subRank-1));
         } else if (a == 4){
             M = (int) pow(levels, 2)*pow(2, 2*(levels-subRank-1));
-        }			
+        }		
+	M = M*baseNum;	
         MLChaini0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[subRank+1].get(), solvers[subRank].get(), solvers[0].get(), beta);
         chaini0Upper.run(A1, A3, A6, A7, &generator);
         MLChaini0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[subRank+1].get(), solvers[subRank].get(), solvers[0].get(), beta);
@@ -146,7 +150,8 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(subRank+1+j, 3)*pow(2, 2*(levels-subRank-1-j));
             } else if (a == 4){
                 M = (int) pow(subRank+1+j, 4)*pow(2, 2*(levels-subRank-1-j));
-            }				
+            }	
+	    M=M*baseNum;			
             MLChainijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[subRank+1].get(), solvers[subRank].get(), solvers[j].get(), solvers[j-1].get(), beta);
             chainijLower.run(A2, A4, A8, A5, &generator);
             MLChainijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[subRank+1].get(), solvers[subRank].get(), solvers[j].get(), solvers[j-1].get(), beta);
@@ -172,7 +177,8 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(levels, 1)*pow(2, 2*(levels-i));
             } else if (a == 4){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
-            }			
+            }		
+	    M=M*baseNum;	
             MLChaini0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get(), beta);
             chaini0Upper.run(A1, A3, A6, A7, &generator);
             MLChaini0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get(), beta);
@@ -189,7 +195,8 @@ double MLMCMC_Bi<samplerType, solverType>::mlmcmcRun(){
                     M = (int) pow(i+j, 3)*pow(2, 2*(levels-i-j));
                 } else if (a == 4){
                     M = (int) pow(i+j, 4)*pow(2, 2*(levels-i-j));
-                }				
+                }	
+		M=M*baseNum;			
                 MLChainijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get(), beta);
                 chainijLower.run(A2, A4, A8, A5, &generator);
                 MLChainijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get(), beta);

@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -g -std=c++11
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -I/usr/local/include/eigen3 -I/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi -I/usr/lib/x86_64-linux-gnu/openmpi/include 
+CXX_INCLUDES = -I/usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -I/usr/local/include/eigen3 
 

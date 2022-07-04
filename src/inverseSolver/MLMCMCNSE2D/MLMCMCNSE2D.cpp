@@ -38,9 +38,9 @@ int main(int argc, char* argv[])
 	int size;
 
         // Solver Options List 1
-	PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
+	//PetscOptionsSetValue(NULL, "-ksp_type", "fgmres");
         //PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
-	PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
+	//PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "gamg");
         //PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "gmres");
         //PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "none");
         //PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "gmres");
@@ -53,14 +53,14 @@ int main(int argc, char* argv[])
 	// PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
 
 	// Solver Options List 3
-	//PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
-	//PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
-	//PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "jacobi");
-	//PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
-	//PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "gamg");
-	//PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
+	PetscOptionsSetValue(NULL, "-ksp_type", "gmres");
+	PetscOptionsSetValue(NULL, "-pc_fieldsplit_type", "additive");
+	PetscOptionsSetValue(NULL, "-fieldsplit_0_pc_type", "jacobi");
+	PetscOptionsSetValue(NULL, "-fieldsplit_0_ksp_type", "preonly");
+	PetscOptionsSetValue(NULL, "-fieldsplit_1_pc_type", "gamg");
+	PetscOptionsSetValue(NULL, "-fieldsplit_1_ksp_type", "preonly");
 
-	// Solver Options List 4 direct solver mumps
+	//// Solver Options List 4 direct solver mumps
 	//PetscOptionsSetValue(NULL, "-ksp_type", "preonly");
 	//PetscOptionsSetValue(NULL, "-ksp_error_if_not_converged", "1");
 	//PetscOptionsSetValue(NULL, "-pc_type", "lu");
@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
 	MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 	MPI_Comm_size(PETSC_COMM_WORLD, &size);
 
-    conf         confData;
-    read_config(&confData);
+   	conf         confData;
+    	read_config(&confData);
 
 	if (rank == 0){
         display_config(&confData);
@@ -200,11 +200,11 @@ int main(int argc, char* argv[])
                 int color = rank % (size/confData.levels);
                 MPI_Comm_split(PETSC_COMM_WORLD, color, rank/confData.levels, &PSubComm);			
 
-                // MLMCMC_Bi_Uniform<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
-                // output = MLMCMCSolver.mlmcmcRun();
-
-                MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                MLMCMC_Bi_Uniform<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
                 output = MLMCMCSolver.mlmcmcRun();
+
+                // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                // output = MLMCMCSolver.mlmcmcRun();
 
                 if (rank == color){
                     std::cout << output << std::endl;
@@ -243,8 +243,8 @@ int main(int argc, char* argv[])
                 }	
 
             } else {
-                // MLMCMC_Bi_Uniform<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
-                // output = MLMCMCSolver.mlmcmcRun();			
+                //MLMCMC_Bi_Uniform<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                //output = MLMCMCSolver.mlmcmcRun();			
 
                 MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, 1, rank, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
                 output = MLMCMCSolver.mlmcmcRun();

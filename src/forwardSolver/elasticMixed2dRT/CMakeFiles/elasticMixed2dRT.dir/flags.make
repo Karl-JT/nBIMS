@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -g -std=c++14
 
 CXX_DEFINES = -DBOOST_ALL_NO_LIB -DBOOST_CHRONO_DYN_LINK -DBOOST_TIMER_DYN_LINK -DDOLFIN_VERSION=\"2019.1.0\" -DHAS_MPI -DHAS_PARMETIS -DHAS_PETSC -DHAS_ZLIB -DNDEBUG
 
-CXX_INCLUDES = -I/home/shared/src/forwardSolver/elasticMixed2dRT -I/home/shared/src/tool/numericalRecipes -isystem /usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -isystem /usr/local/include/eigen3 -isystem /usr/lib/x86_64-linux-gnu/openmpi/include/openmpi -isystem /usr/lib/x86_64-linux-gnu/openmpi/include 
+CXX_INCLUDES = -I/home/shared/src/forwardSolver/elasticMixed2dRT -I/home/shared/src/tool/numericalRecipes -isystem /usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -isystem /usr/local/include/eigen3 
 

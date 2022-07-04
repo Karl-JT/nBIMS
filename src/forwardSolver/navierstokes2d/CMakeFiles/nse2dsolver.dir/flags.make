@@ -6,5 +6,5 @@ CXX_FLAGS = -Wno-unused-parameter    -O3 -W -Wall -g -std=c++14
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -I/usr/local/include/eigen3 -I/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi -I/usr/lib/x86_64-linux-gnu/openmpi/include -I/home/shared/src/forwardSolver/navierstokes2d -I/home/shared/src/tool/FEModule -I/home/shared/src/tool/numericalRecipes 
+CXX_INCLUDES = -I/usr/local/lib/python3.8/dist-packages/ffc/backends/ufc -I/usr/local/include/eigen3 -I/home/shared/src/forwardSolver/navierstokes2d -I/home/shared/src/tool/FEModule -I/home/shared/src/tool/numericalRecipes 
 

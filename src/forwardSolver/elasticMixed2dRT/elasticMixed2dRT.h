@@ -14,26 +14,76 @@ using namespace dolfin;
 
 enum PRIOR_DISTRIBUTION{ UNIFORM, GAUSSIAN };
 
+
+double static func1(double t){
+  return 1.0;
+}
+
+double static func2(double t)
+{
+  return std::sin(2*M_PI*t);
+}
+
+double static func3(double t)
+{
+  return std::cos(2*M_PI*t);
+}
+
+double static func4(double t)
+{
+  return std::sin(4*M_PI*t);
+}
+
+double static func5(double t)
+{
+  return std::cos(4*M_PI*t);
+}
+
+const double decay_rate[25] = {1,2,4,7,11,3,5,8,12,16,6,9,13,17,20,10,14,18,21,23,15,19,22,24,25};
+double (*const basis_func_ptr[5])(double) = {func1, func2, func3, func4, func5};
+
 class LameC0 : public Expression
 {
     void eval(Array<double>& values, const Array<double>& x) const
     {
-        values[0] = exp(m*(cos(2*M_PI*x[0])*sin(2*M_PI*x[1])));
+	//option0
+        //values[0] = exp(m[0]*(cos(2*M_PI*x[0])*sin(2*M_PI*x[1])));
+    	//option1
+	values[0]=0;
+	for (int i=0; i<2; i++){
+          for (int j=0; j<2; j++){
+            values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[1])*(*basis_func_ptr[j])(x[0])*pow(decay_rate[5*i+j], -1.5);
+            //std::cout << "m: " << m[5*i+j] << " decay rate: " << decay_rate[5*i+j] << " values: " << values[0] << std::endl;
+	  }
+        }
+        values[0] = exp(values[0]);
+	//std::cout << values[0] << " " << std::endl;
     }
 
 public:
-    double m = 0;
+    double m[25] = {0};
 };
 
 class LameC1 : public Expression
 {
     void eval(Array<double>& values, const Array<double>& x) const
     {
-        values[0] = exp(m*(sin(2*M_PI*x[0])*cos(2*M_PI*x[1])));
+	//option0
+    	//values[0] = exp(m[0]*(sin(2*M_PI*x[0])*cos(2*M_PI*x[1])));
+        //option1
+        values[0]=0;
+        for (int i=0; i < 5; i++){
+          for (int j=0; j < 5; j++){
+            values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[1])*(*basis_func_ptr[j])(x[0])*pow(decay_rate[5*i+j], -1.5);
+            //std::cout << "m: " << m[5*i+j] << " decay rate: " << decay_rate[5*i+j] << " values: " << values[0] << std::endl;
+	  }
+        }
+        values[0] = exp(values[0]);
+        //std::cout << values[0] << " " << std::endl;
     }
 
 public:
-    double m = 0;
+    double m[25] = {0};
 };
 
 class ForceC0 : public Expression
@@ -101,8 +151,8 @@ public:
 
     std::unique_ptr<double[]> samples;
     
-	std::default_random_engine generator;
-	std::normal_distribution<double> normalDistribution{0.0,1.0};
+    std::default_random_engine generator;
+    std::normal_distribution<double> normalDistribution{0.0,1.0};
     std::uniform_real_distribution<double> uniformDistribution{-1.0,1.0};
 
     mixedPoissonSolver(MPI_Comm comm_, int level_, int num_term_, double noiseVariance_);

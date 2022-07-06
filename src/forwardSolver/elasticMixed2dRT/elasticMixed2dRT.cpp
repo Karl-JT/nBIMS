@@ -30,7 +30,7 @@ mixedPoissonSolver::mixedPoissonSolver(MPI_Comm comm_, int level_, int num_term_
 
     geoMesh = std::make_shared<UnitSquareMesh>(comm_,nx,ny,"left");
 
-    obs = 6.008514619642654;//2.432009397737586; //-1.374767714059374;//-1.725570585139927;
+    obs = -0.525570585139927; //6.008514619642654;//2.432009397737586; //-1.374767714059374;//-1.725570585139927;
     samples = std::make_unique<double[]>(num_term);
 
     SolverSetup();
@@ -77,57 +77,66 @@ void mixedPoissonSolver::SolverSetup(){
 
 void mixedPoissonSolver::solve(bool flag)
 {
-    mu->m = samples[0];
-    lda->m = samples[0];
+  for (int i=0; i<25; i++){
+    mu->m[i] = samples[i];
+    lda->m[i] = samples[i];
+  }
 
-    a->mu = mu;
-    a->lda = lda;
+  a->mu = mu;
+  a->lda = lda;
 
-    std::vector< std::shared_ptr< const DirichletBC >> bcs;
-    assemble_system(*A, *b, *a, *L, bcs);
+  std::vector< std::shared_ptr< const DirichletBC >> bcs;
+  assemble_system(*A, *b, *a, *L, bcs);
 
     // std::cout << "rank: " << rank << " coefficient: " << samples[0] << std::endl;
 
-    PETScKrylovSolver solver(comm); 
-    solver.set_operator(A);
-    solver.set_from_options();
+  PETScKrylovSolver solver(comm); 
+  solver.set_operator(A);
+  solver.set_from_options();
     //std::clock_t c_start = std::clock();
     //auto wcts = std::chrono::system_clock::now();
-    solver.solve(*(w->vector()), *b);
+  solver.solve(*(w->vector()), *b);
     //std::clock_t c_end = std::clock();
     //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
     //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
     //std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;
     //solver.str(1);
 
-    intU1->solution = w;
-    intU2->solution = w;
+  intU1->solution = w;
+  intU2->solution = w;
 
-    u1_mean = std::make_shared<Constant>(assemble(*intU1));
-    u2_mean = std::make_shared<Constant>(assemble(*intU2));
+  u1_mean = std::make_shared<Constant>(assemble(*intU1));
+  u2_mean = std::make_shared<Constant>(assemble(*intU2));
 
-    intObs->x = x;
-    intQoi->x = x;
+  intObs->x = x;
+  intQoi->x = x;
 
-    intObs->solution = w;
-    intQoi->solution = w;
+  intObs->solution = w;
+  intQoi->solution = w;
 
-    intQoi->s1 = u1_mean;
-    intQoi->s2 = u2_mean;
+  intQoi->s1 = u1_mean;
+  intQoi->s2 = u2_mean;
 };
 
 void mixedPoissonSolver::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)
 {
-    switch(flag){
-        case UNIFORM:
-            initialSamples[0] = uniformDistribution(generator);
-            break;
-        case GAUSSIAN:
-            initialSamples[0] = normalDistribution(generator);
-            break;
-        default:
-            initialSamples[0] = uniformDistribution(generator);
+  switch(flag){
+    case UNIFORM:
+      for (int i=0; i<num_term; i++){
+        initialSamples[i] = uniformDistribution(generator);
+      }
+      break;
+    case GAUSSIAN:
+      for (int i=0; i<num_term; i++){
+        initialSamples[i] = normalDistribution(generator);
+      }
+      break;
+    default:
+      for (int i=0; i<num_term; i++){
+        initialSamples[i] = uniformDistribution(generator);
+      }
     }
+
 }
 
 double mixedPoissonSolver::solve4QoI(){

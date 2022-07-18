@@ -82,7 +82,6 @@ int main(int argc, char* argv[])
             std::cout << singleForwardSolver.ObsOutput() << std::endl;
             std::cout << singleForwardSolver.QoiOutput() << std::endl;
 
-            MPI_Barrier(MPI_COMM_WORLD);
             break;
         }
 
@@ -149,49 +148,48 @@ int main(int argc, char* argv[])
                     }
                     outputfile.close();
                 }	
-                MPI_Barrier(MPI_COMM_WORLD);
             } else {
                 //MLMCMC_Bi_Uniform<pCN<mixedPoissonSolver>, mixedPoissonSolver> MLMCMCSolver(MPI_COMM_SELF, confData.levels, 1, rank, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
                 //output = MLMCMCSolver.mlmcmcRun();			
 
                 MLMCMC_Bi<pCN<mixedPoissonSolver>, mixedPoissonSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, (rank+1)*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
                 output = MLMCMCSolver.mlmcmcRun();
-               // std::cout << output << std::endl;
+                std::cout << output << std::endl;
 
-               // std::string outputfile = "output_";
-               // outputfile.append(std::to_string(rank));
+                std::string outputfile = "output_";
+                outputfile.append(std::to_string(rank));
 
-               // std::ofstream myfile;
-               // myfile.open(outputfile);
-               // for (int i = 0; i<confData.num_term; ++i){
-               //     myfile << output << " ";
-               // }
-               // myfile << std::endl;
-               // myfile.close();
+                std::ofstream myfile;
+                myfile.open(outputfile);
+                for (int i = 0; i<confData.num_term; ++i){
+                    myfile << output << " ";
+                }
+                myfile << std::endl;
+                myfile.close();
 
-               // MPI_Barrier(MPI_COMM_WORLD);
+                MPI_Barrier(MPI_COMM_WORLD);
 
-               // if (rank == 0){
-               //     double buffer;
-               //     std::string finaloutput = "finalOutput";
-               //     std::ofstream outputfile;
-               //     outputfile.open(finaloutput);
-               //     for (int i = 0; i < size; i++){
-               //         std::string finalinput = "output_";
-               //         finalinput.append(std::to_string(i));
-               //         std::ifstream inputfile;
-               //         inputfile.open(finalinput, std::ios_base::in);
-               //         for(int i=0; i< confData.num_term; ++i){
-               //             inputfile >> buffer;
-               //             outputfile << buffer << " ";
-               //         }
-               //         outputfile << std::endl;
-               //         inputfile.close();
-               //     }
-               //     outputfile.close();
-               // }
-               // MPI_Barrier(MPI_COMM_WORLD);
+                if (rank == 0){
+                    double buffer;
+                    std::string finaloutput = "finalOutput";
+                    std::ofstream outputfile;
+                    outputfile.open(finaloutput);
+                    for (int i = 0; i < size; i++){
+                        std::string finalinput = "output_";
+                        finalinput.append(std::to_string(i));
+                        std::ifstream inputfile;
+                        inputfile.open(finalinput, std::ios_base::in);
+                        for(int i=0; i< 1; ++i){
+                            inputfile >> buffer;
+                            outputfile << buffer << " ";
+                        }
+                        outputfile << std::endl;
+                        inputfile.close();
+                    }
+                    outputfile.close();
+                }
             }
+	    MPI_Barrier(MPI_COMM_WORLD);
             break;
         }
 

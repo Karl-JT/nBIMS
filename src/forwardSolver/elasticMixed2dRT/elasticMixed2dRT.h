@@ -53,11 +53,9 @@ class LameC0 : public Expression
 	for (int i=0; i<2; i++){
           for (int j=0; j<2; j++){
             values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[1])*(*basis_func_ptr[j])(x[0])*pow(decay_rate[5*i+j], -1.5);
-            //std::cout << "m: " << m[5*i+j] << " decay rate: " << decay_rate[5*i+j] << " values: " << values[0] << std::endl;
 	  }
         }
         values[0] = exp(values[0]);
-	//std::cout << values[0] << " " << std::endl;
     }
 
 public:
@@ -75,11 +73,9 @@ class LameC1 : public Expression
         for (int i=0; i < 5; i++){
           for (int j=0; j < 5; j++){
             values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[1])*(*basis_func_ptr[j])(x[0])*pow(decay_rate[5*i+j], -1.5);
-            //std::cout << "m: " << m[5*i+j] << " decay rate: " << decay_rate[5*i+j] << " values: " << values[0] << std::endl;
 	  }
         }
         values[0] = exp(values[0]);
-        //std::cout << values[0] << " " << std::endl;
     }
 
 public:
@@ -90,7 +86,7 @@ class ForceC0 : public Expression
 {
     void eval(Array<double>& values, const Array<double>& x) const
     {
-        values[0] = 500*sin(2*M_PI*x[0]);
+        values[0] = 200*sin(2*M_PI*x[0]);
     }
 };
 
@@ -98,7 +94,7 @@ class ForceC1 : public Expression
 {
     void eval(Array<double>& values, const Array<double>& x) const
     {
-        values[0] = 500*sin(2*M_PI*x[1]);
+        values[0] = 200*sin(2*M_PI*x[1]);
     }
 };
 

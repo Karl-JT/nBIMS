@@ -53,7 +53,7 @@ void NSE2dSolver::LinearSystemSetup()
     MatDuplicate(mesh->A, MAT_DO_NOT_COPY_VALUES, &LHS);
     //MatCreateSubMatrix(LHS, isrowcol, isrowcol, MAT_INITIAL_MATRIX, &LHS_sub);
     MatDestroy(&Workspace);
-}
+};
 
 //Iterative solver
 void NSE2dSolver::SolverSetup(){
@@ -69,7 +69,7 @@ void NSE2dSolver::SolverSetup(){
     KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
     KSPSetFromOptions(ksp);
     KSPSetPC(ksp, pc);
-}
+};
 
 void NSE2dSolver::ForwardStep(){
     MatZeroEntries(mesh->C);
@@ -131,7 +131,7 @@ void NSE2dSolver::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)
         default:
             initialSamples[0] = uniformDistribution(generator);
     }
-}
+};
 
 double NSE2dSolver::solve4QoI(){
     return QoiOutput();
@@ -146,17 +146,17 @@ double NSE2dSolver::ObsOutput(){
     VecDot(intVecObs, X, &obs);
     obs = 100.*obs;
     return obs;	
-}
+};
 
 double NSE2dSolver::QoiOutput(){
     double qoi;
     VecDot(intVecQoi, X_snap, &qoi);
     qoi = 100.*qoi;
     return qoi;
-}
+};
 
 double NSE2dSolver::lnLikelihood(){
 	double obsResult = ObsOutput();
 	double lnLikelihood = -0.5/noiseVariance*pow(obsResult-obs,2);
 	return lnLikelihood;
-}
+};

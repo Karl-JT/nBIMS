@@ -3,7 +3,7 @@
 
 src/inverseSolver/mlmcmcNSE2d_lag/CMakeFiles/nse2dLagmlmcmc.dir/mlmcmcNSE2d_lag.cpp.o
  /home/shared/src/inverseSolver/mlmcmcNSE2d_lag/mlmcmcNSE2d_lag.cpp
- src/forwardSolver/navierstokes2d/nse2dLag.h
+ src/forwardSolver/navierstokes2d/nse2d_Lag.h
  src/mcmcLib/include/MCMCBase.h
  src/mcmcLib/include/MCMCChain.h
  src/mcmcLib/include/MLChains_Bi.h
@@ -12,5 +12,6 @@ src/inverseSolver/mlmcmcNSE2d_lag/CMakeFiles/nse2dLagmlmcmc.dir/mlmcmcNSE2d_lag.
  src/mcmcLib/include/MLMCMC_Bi_Uniform.h
  src/mcmcLib/include/pCN.h
  src/mcmcLib/include/samplerBase.h
+ src/tool/FEModule/FEModule.h
  src/tool/IO/confIO.h
  src/tool/numericalRecipes/numericalRecipes.h

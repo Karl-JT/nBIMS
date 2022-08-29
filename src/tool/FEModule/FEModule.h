@@ -26,7 +26,7 @@ public:
 	int level;
 	int dof;
 	int vortex_num_per_row;
-        int vortex_num_per_column;
+    int vortex_num_per_column;
 	int ngp; 
 
 	Mat M,A,G,Q,C,J,D,P;
@@ -143,3 +143,4 @@ void ApplyBoundaryCondition(Mat Sys, Vec Sol, Vec Rhs, IS boundaryIS);
 
 void Interpolate(Mat M, Vec load, Vec interpolation);
 
+void SolutionPointWiseInterpolation(DM meshDM, int votex_num_per_row, Vec X, int time_idx, double z[], double pointwiseVel[]);

@@ -23,14 +23,14 @@ time.h
 -
 confIO.h
 -
-nse2dLag.h
+nse2d_Lag.h
 -
 MLMCMC_Bi_Uniform.h
 -
 MLMCMC_Bi.h
 -
 
-src/forwardSolver/navierstokes2d/nse2dLag.h
+src/forwardSolver/navierstokes2d/nse2d_Lag.h
 memory
 -
 random
@@ -39,21 +39,13 @@ mpi.h
 -
 petsc.h
 -
-petscdmplex.h
--
-petscsnes.h
--
-petscts.h
--
-petscds.h
--
-iostream
--
 ctime
 -
 chrono
 -
 numericalRecipes.h
+-
+FEModule.h
 -
 
 src/mcmcLib/include/MCMCBase.h
@@ -107,6 +99,22 @@ samplerBase.h
 src/mcmcLib/include/samplerBase.h
 
 src/mcmcLib/include/samplerBase.h
+
+src/tool/FEModule/FEModule.h
+iostream
+-
+fstream
+-
+ctime
+-
+chrono
+-
+mpi.h
+-
+petsc.h
+-
+numericalRecipes.h
+-
 
 src/tool/IO/confIO.h
 iostream

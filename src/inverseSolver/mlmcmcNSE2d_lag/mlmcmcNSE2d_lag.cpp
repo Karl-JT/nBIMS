@@ -7,7 +7,7 @@
 #include <time.h>
 
 #include <confIO.h>
-#include <nse2dLag.h>
+#include <nse2d_Lag.h>
 #include <MLMCMC_Bi_Uniform.h>
 #include <MLMCMC_Bi.h>
 
@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
         case 0: //Generate Observation
         {
             std::cout << "start inverse solver" << std::endl;
-            NSE2dLagSolver singleForwardSolver(PETSC_COMM_SELF, confData.levels, confData.num_term,confData.noiseVariance);
-            singleForwardSolver.SetupProblem();
+            NSE2dSolverLag singleForwardSolver(PETSC_COMM_SELF, confData.levels, confData.num_term,confData.noiseVariance);
+            singleForwardSolver.samples[0]=confData.rand_coef[0];
             singleForwardSolver.solve();
             break;
         }

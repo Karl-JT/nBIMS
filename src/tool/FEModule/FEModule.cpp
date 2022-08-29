@@ -245,7 +245,7 @@ void ShapeFunctionQ12D_Evaluate_dxi(double xi_p[], double GNi[][4])
 	GNi[1][1] =  0.25-0.25*xi;
 	GNi[1][2] =  0.25+0.25*xi;
 	GNi[1][3] = -0.25-0.25*xi;
-}
+};
 
 void ShapeFunctionQ12D_Evaluate_dx(double GNi[][4], double GNx[][4], double coords[], double *det_J)
 {
@@ -274,7 +274,7 @@ void ShapeFunctionQ12D_Evaluate_dx(double GNi[][4], double GNx[][4], double coor
 		GNx[0][n] = GNi[0][n]*iJ[0][0]+GNi[1][n]*iJ[0][1];
 		GNx[1][n] = GNi[0][n]*iJ[1][0]+GNi[1][n]*iJ[1][1];
 	}
-}
+};
 
 void FormStressOperatorQ12D(double Kex[],double Key[], double coords[], double eta[])
 {
@@ -321,7 +321,7 @@ void FormStressOperatorQ12D(double Kex[],double Key[], double coords[], double e
             }
         }
 	}
-}
+};
 
 
 void FormStressOperatorQ12Dnu(double Kex[],double Key[], double coords[], double(*Visc)(double, double, double[], int), double samples[], int sampleSize)
@@ -379,7 +379,7 @@ void FormStressOperatorQ12Dnu(double Kex[],double Key[], double coords[], double
             }
         }
 	}
-}
+};
 
 int ASS_MAP_wIwDI_uJuDJ(int wi,int wd,int w_NPE,int w_dof,int ui,int ud,int u_NPE,int u_dof)
 {
@@ -395,7 +395,7 @@ int ASS_MAP_wIwDI_uJuDJ(int wi,int wd,int w_NPE,int w_dof,int ui,int ud,int u_NP
     ij = r*nc+c;
 
     return ij;
-}
+};
 
 void FormGradientOperatorQ12D(double Ge[], double coords[])
 {
@@ -425,7 +425,7 @@ void FormGradientOperatorQ12D(double Ge[], double coords[])
             }
         }
     }
-}
+};
 
 void FormAdvectOperatorQ12D(double Ce[], double coords[], double vel[2][4], int m, int n)
 {
@@ -454,7 +454,7 @@ void FormAdvectOperatorQ12D(double Ce[], double coords[], double vel[2][4], int 
             }
         }
     }
-}
+};
 
 
 void FormAdvectJacobian(double CJ[], double coords[], double vel[2][4], int m, int n)
@@ -497,7 +497,7 @@ void FormAdvectJacobian(double CJ[], double coords[], double vel[2][4], int m, i
             }
         }
     }
-}
+};
 
 void GetExplicitVel(VortexDOF **states, int i, int j, double vel[2][4])
 {
@@ -505,7 +505,7 @@ void GetExplicitVel(VortexDOF **states, int i, int j, double vel[2][4])
     vel[0][1]=states[j+1][i].u   ;vel[1][1]=states[j+1][i].v;
     vel[0][2]=states[j+1][i+1].u ;vel[1][2]=states[j+1][i+1].v;
     vel[0][3]=states[j][i+1].u   ;vel[1][3]=states[j][i+1].v;
-}
+};
 
 void FormDivergenceOperatorQ12D(double De[],double coords[])
 {
@@ -523,7 +523,7 @@ void FormDivergenceOperatorQ12D(double De[],double coords[])
       De[nr_g*j+i] = Ge[nc_g*i+j];
     }
   }
-}
+};
 
 void FormMassMatrixOperatorQ12D(double Me[],double coords[])
 {
@@ -549,7 +549,7 @@ void FormMassMatrixOperatorQ12D(double Me[],double coords[])
             }
         }
     }
-}
+};
 
 
 void FormScaledMassMatrixOperatorQ12D(double Pe[],double coords[], double(*penalty)(double, double, double[], int), double samples[], int sampleSize)
@@ -583,7 +583,7 @@ void FormScaledMassMatrixOperatorQ12D(double Pe[],double coords[], double(*penal
             }
         }
     }
-}
+};
 
 void FormMomentumRhsQ12D(double Fe[],double coords[], double t, void(*Forcing)(double, double, double, double[], double[], int), double samples[], int sampleSize)
 {
@@ -615,8 +615,8 @@ void FormMomentumRhsQ12D(double Fe[],double coords[], double t, void(*Forcing)(d
             Fe[2*i]   += fac*Ni_p[i]*f[0];
             Fe[2*i+1] += fac*Ni_p[i]*f[1]; 
         }
-    }    
-}
+    }   
+};
 
 void FormContinuityRhsQ12D(double Fe[],double coords[],double hc[])
 {
@@ -638,7 +638,7 @@ void FormContinuityRhsQ12D(double Fe[],double coords[],double hc[])
 
     for (int i=0; i<4; i++) Fe[i] -= fac*Ni_p[i]*hc[p];
   }
-}
+};
 
 void DMDAGetElementEqnums2D_up(MatStencil s_u[],MatStencil s_p[],int i,int j)
 {
@@ -664,7 +664,7 @@ void DMDAGetElementEqnums2D_up(MatStencil s_u[],MatStencil s_p[],int i,int j)
     s_p[n].i = i;   s_p[n].j = j+1; s_p[n].c = 2; n++;
     s_p[n].i = i+1; s_p[n].j = j+1; s_p[n].c = 2; n++;
     s_p[n].i = i+1; s_p[n].j = j;   s_p[n].c = 2; n++;
-}
+};
 
 void DMDAGetElementEqnums1D_up(MatStencil s_u[],int i,int j,int b)
 {
@@ -675,7 +675,7 @@ void DMDAGetElementEqnums1D_up(MatStencil s_u[],int i,int j,int b)
     s_u[n].i = i;   s_u[n].j = j+1; s_u[n].c = b; n++;
     s_u[n].i = i+1; s_u[n].j = j+1; s_u[n].c = b; n++;
     s_u[n].i = i+1; s_u[n].j = j;   s_u[n].c = b; n++;
-}
+};
 
 void FormPreconditionerQ1isoQ2(double Qe[],int i, int j)
 {
@@ -703,7 +703,7 @@ void FormPreconditionerQ1isoQ2(double Qe[],int i, int j)
         std::cout << "error form preconditioned q1isoq2" << std::endl;
         std::cout << i << " " << j << " " << i%2 << " " << j%2 << std::endl;
     }
-}
+};
 
 void FormIntegralOperator(double Oe[], double coords[], double expCoef)
 {
@@ -737,7 +737,7 @@ void FormIntegralOperator(double Oe[], double coords[], double expCoef)
             Oe[2*i+1] -= pow(xCoord, expCoef)*pow(yCoord, expCoef)*fac*GNx_p[0][i];
         }
     }
-}
+};
 
 void FormIntegralOperator2(double Oe[], double coords[], double expCoef)
 {
@@ -771,7 +771,7 @@ void FormIntegralOperator2(double Oe[], double coords[], double expCoef)
             Oe[2*i+1] += pow(xCoord, expCoef)*fac*GNx_p[0][i];
         }
     }
-}
+};
 
 
 void AssembleM(Mat M, DM meshDM)
@@ -852,6 +852,7 @@ void AssembleA(Mat A, DM meshDM, double nu){
 	double					 el_coords[4*2];
     double                   visc[4]={nu,nu,nu,nu};
 
+
 	DMGetCoordinateDM(meshDM, &cda);
 	DMGetCoordinatesLocal(meshDM, &coords);
 	DMDAVecGetArray(cda, coords, &_coords);
@@ -877,7 +878,7 @@ void AssembleA(Mat A, DM meshDM, double nu){
     MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void AssemblenuA(Mat A, DM meshDM, double(*Visc)(double, double, double[], int), double samples[], int sampleSize)
 {
@@ -947,7 +948,7 @@ void AssembleG(Mat G, DM meshDM){
     MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(G, MAT_FINAL_ASSEMBLY);
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void AssembleQ(Mat Q, DM meshDM){
 	DM 						 cda;
@@ -981,7 +982,7 @@ void AssembleQ(Mat Q, DM meshDM){
     MatAssemblyBegin(Q, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(Q, MAT_FINAL_ASSEMBLY);
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void AssembleC(Mat C,DM meshDM,Vec X,ISLocalToGlobalMapping l2gmapping)
 {
@@ -1032,7 +1033,7 @@ void AssembleC(Mat C,DM meshDM,Vec X,ISLocalToGlobalMapping l2gmapping)
     DMDAVecRestoreArray(cda,coords,&_coords);
     DMDAVecRestoreArray(meshDM,X_local,&states);
     VecDestroy(&X_local);
-}
+};
 
 
 void AssembleJ(Mat J,DM meshDM,Vec X,ISLocalToGlobalMapping l2gmapping)
@@ -1082,7 +1083,7 @@ void AssembleJ(Mat J,DM meshDM,Vec X,ISLocalToGlobalMapping l2gmapping)
     DMDAVecRestoreArray(cda,coords,&_coords);
     DMDAVecRestoreArray(meshDM,X_local,&states);
     VecDestroy(&X_local);
-}
+};
 
 void AssembleD(Mat D, DM meshDM)
 {
@@ -1125,7 +1126,7 @@ void AssembleD(Mat D, DM meshDM)
     MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
 
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void DMDASetValuesLocalStencil2D_ADD_VALUES(VortexDOF **fields_F,MatStencil u_eqn[],MatStencil p_eqn[],double Fe_u[],double Fe_p[])
 {
@@ -1147,7 +1148,7 @@ void DMDASetValuesLocalStencil2D_ADD_VALUES(VortexDOF **fields_F,MatStencil u_eq
 
         fields_F[J][II].p = fields_F[J][II].p+Fe_p[n];
     }
-}
+};
 
 void AssembleF(Vec F,DM meshDM, double t, void(*Forcing)(double, double, double, double[], double[], int),double samples[], int sampleSize)
 {
@@ -1199,7 +1200,7 @@ void AssembleF(Vec F,DM meshDM, double t, void(*Forcing)(double, double, double,
     DMRestoreLocalVector(meshDM,&local_F);
 
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void AssembleIntegralOperator(Vec intVec,DM meshDM, double expCoef)
 {
@@ -1247,7 +1248,7 @@ void AssembleIntegralOperator(Vec intVec,DM meshDM, double expCoef)
     DMRestoreLocalVector(meshDM,&local_S);
 
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 
 void AssembleIntegralOperator2(Vec intVec,DM meshDM, double expCoef)
@@ -1298,12 +1299,12 @@ void AssembleIntegralOperator2(Vec intVec,DM meshDM, double expCoef)
     DMRestoreLocalVector(meshDM,&local_S);
 
     DMDAVecRestoreArray(cda,coords,&_coords);
-}
+};
 
 void ApplyBoundaryCondition(Mat Sys, Vec Sol, Vec Rhs, IS boundaryIS)
 {
     MatZeroRowsColumnsIS(Sys,boundaryIS,1.0,Sol,Rhs);
-}
+};
 
 void Interpolate(Mat M, Vec load, Vec interpolation)
 {
@@ -1321,4 +1322,38 @@ void Interpolate(Mat M, Vec load, Vec interpolation)
 
 	KSPSolve(InterpolationOperator, load, interpolation);
 	KSPDestroy(&InterpolationOperator);
+};
+
+void SolutionPointWiseInterpolation(DM meshDM, int vortex_num_per_row, Vec X, int time_idx, double z[], double pointwiseVel[]){
+	DM 						 cda;
+	Vec 					 coords,X_local;
+	DMDACoor2d 			     **_coords;
+    VortexDOF                **states;
+	double					 el_coords[4*2];
+    double                   vel[2][4]={0.0};
+    double                   Ni_p[4];
+    double                   gp_xi[2];
+
+    double h =  1.0/vortex_num_per_row;
+    int elementCornerX = floor(z[5*time_idx]/h);
+    int elementCornerY = floor(z[5*time_idx+1]/h);
+
+    gp_xi[0] = (z[5*time_idx]-elementCornerX*h)/h*2.0-1.0;
+    gp_xi[1] = (z[5*time_idx+1]-elementCornerY*h)/h*2.0-1.0;
+
+	DMGetCoordinateDM(meshDM, &cda);
+	DMGetCoordinatesLocal(meshDM, &coords);
+	DMDAVecGetArray(cda, coords, &_coords);
+    DMCreateLocalVector(meshDM,&X_local);
+    DMGlobalToLocalBegin(meshDM,X,INSERT_VALUES,X_local);
+    DMGlobalToLocalEnd(meshDM,X,INSERT_VALUES,X_local);
+    DMDAVecGetArray(meshDM,X_local,&states);
+
+    GetElementCoordinates2D(_coords, elementCornerX, elementCornerY, el_coords);
+    GetExplicitVel(states, elementCornerX, elementCornerY, vel);
+
+    ShapeFunctionQ12D_Evaluate(gp_xi, Ni_p);
+
+    pointwiseVel[0] = Ni_p[0]*vel[0][0] + Ni_p[1]*vel[0][1] + Ni_p[2]*vel[0][2] + Ni_p[3]*vel[0][3];
+    pointwiseVel[1] = Ni_p[0]*vel[1][0] + Ni_p[1]*vel[1][1] + Ni_p[2]*vel[1][2] + Ni_p[3]*vel[1][3]; 
 };

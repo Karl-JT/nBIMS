@@ -1,3 +1,0 @@
-/home/shared/CMakeFiles/rebuild_cache.dir
-/home/shared/CMakeFiles/nse2dsolver.dir
-/home/shared/CMakeFiles/edit_cache.dir

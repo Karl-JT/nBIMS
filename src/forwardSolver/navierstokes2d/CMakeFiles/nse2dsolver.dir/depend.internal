@@ -25,15 +25,21 @@ src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o
  /home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
  src/tool/FEModule/FEModule.h
  src/tool/numericalRecipes/numericalRecipes.h
-src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dLag.cpp.o
- /home/shared/src/forwardSolver/navierstokes2d/nse2dLag.cpp
- /home/shared/src/forwardSolver/navierstokes2d/nse2dLag.h
- /home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
- src/tool/numericalRecipes/numericalRecipes.h
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o
  /home/shared/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp
  /home/shared/src/forwardSolver/navierstokes2d/nse2d_IC_f.h
  /home/shared/src/forwardSolver/navierstokes2d/nseIC.h
  /home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
  src/tool/FEModule/FEModule.h
+ src/tool/numericalRecipes/numericalRecipes.h
+src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o
+ /home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp
+ /home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.h
+ /home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
+ src/tool/FEModule/FEModule.h
+ src/tool/numericalRecipes/numericalRecipes.h
+src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o
+ /home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
+ /home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.h
+ /home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
  src/tool/numericalRecipes/numericalRecipes.h

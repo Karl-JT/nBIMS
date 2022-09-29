@@ -7,7 +7,7 @@ template <typename samplerType, typename solverType>
 class MCMCChain : public MCMCBase {
 public:
 	int chainIdx = 0;
-	int numBurnin = 5;
+	int numBurnin = 20;
 	int maxChainLength;	
 	int sampleSize;
 	double alpha;

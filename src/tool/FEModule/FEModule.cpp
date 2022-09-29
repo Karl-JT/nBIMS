@@ -1324,26 +1324,30 @@ void Interpolate(Mat M, Vec load, Vec interpolation)
 	KSPDestroy(&InterpolationOperator);
 };
 
-void SolutionPointWiseInterpolation(DM meshDM, int vortex_num_per_row, Vec X, int time_idx, double z[], double pointwiseVel[]){
-	DM 						 cda;
-	Vec 					 coords,X_local;
-	DMDACoor2d 			     **_coords;
+void SolutionPointWiseInterpolation(DM meshDM, int vortex_num_per_row, Vec X, double z[], double pointwiseVel[]){
+    DM 			     cda;
+    Vec 		     coords,X_local;
+    DMDACoor2d 	             **_coords;
     VortexDOF                **states;
-	double					 el_coords[4*2];
+    double		     el_coords[4*2];
     double                   vel[2][4]={0.0};
     double                   Ni_p[4];
     double                   gp_xi[2];
 
     double h =  1.0/vortex_num_per_row;
-    int elementCornerX = floor(z[5*time_idx]/h);
-    int elementCornerY = floor(z[5*time_idx+1]/h);
+    int elementCornerX = floor(z[0]/h);
+    int elementCornerY = floor(z[1]/h);
 
-    gp_xi[0] = (z[5*time_idx]-elementCornerX*h)/h*2.0-1.0;
-    gp_xi[1] = (z[5*time_idx+1]-elementCornerY*h)/h*2.0-1.0;
+    //std::cout << "element location " << elementCornerX << " " << elementCornerY << std::endl;
 
-	DMGetCoordinateDM(meshDM, &cda);
-	DMGetCoordinatesLocal(meshDM, &coords);
-	DMDAVecGetArray(cda, coords, &_coords);
+    gp_xi[0] = (z[0]-elementCornerX*h)/h*2.0-1.0;
+    gp_xi[1] = (z[1]-elementCornerY*h)/h*2.0-1.0;
+
+    //std::cout << "gp_xi: " << gp_xi[0] << " " << gp_xi[1] << std::endl;
+
+    DMGetCoordinateDM(meshDM, &cda);
+    DMGetCoordinatesLocal(meshDM, &coords);
+    DMDAVecGetArray(cda, coords, &_coords);
     DMCreateLocalVector(meshDM,&X_local);
     DMGlobalToLocalBegin(meshDM,X,INSERT_VALUES,X_local);
     DMGlobalToLocalEnd(meshDM,X,INSERT_VALUES,X_local);
@@ -1352,8 +1356,18 @@ void SolutionPointWiseInterpolation(DM meshDM, int vortex_num_per_row, Vec X, in
     GetElementCoordinates2D(_coords, elementCornerX, elementCornerY, el_coords);
     GetExplicitVel(states, elementCornerX, elementCornerY, vel);
 
+
+    //std::cout << "velocity: " << vel[0][0] << " " << vel[0][1] << " " << vel[0][2] << " " << vel[0][3] << std::endl;
     ShapeFunctionQ12D_Evaluate(gp_xi, Ni_p);
 
+    //std::cout << "Ni_p: " << Ni_p[0] << " " << Ni_p[1] << " " << Ni_p[2] << " " << Ni_p[3] << std::endl;
     pointwiseVel[0] = Ni_p[0]*vel[0][0] + Ni_p[1]*vel[0][1] + Ni_p[2]*vel[0][2] + Ni_p[3]*vel[0][3];
     pointwiseVel[1] = Ni_p[0]*vel[1][0] + Ni_p[1]*vel[1][1] + Ni_p[2]*vel[1][2] + Ni_p[3]*vel[1][3]; 
+
+    DMDAVecRestoreArray(cda, coords, &_coords);
+    DMDAVecRestoreArray(meshDM,X_local,&states);
+
+    //VecDestroy(&coords);
+    //VecDestroy(&X_local);
+    //DMDestroy(&cda);
 };

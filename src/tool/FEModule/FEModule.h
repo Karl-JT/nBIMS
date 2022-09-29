@@ -143,4 +143,4 @@ void ApplyBoundaryCondition(Mat Sys, Vec Sol, Vec Rhs, IS boundaryIS);
 
 void Interpolate(Mat M, Vec load, Vec interpolation);
 
-void SolutionPointWiseInterpolation(DM meshDM, int votex_num_per_row, Vec X, int time_idx, double z[], double pointwiseVel[]);
+void SolutionPointWiseInterpolation(DM meshDM, int votex_num_per_row, Vec X, double z[], double pointwiseVel[]);

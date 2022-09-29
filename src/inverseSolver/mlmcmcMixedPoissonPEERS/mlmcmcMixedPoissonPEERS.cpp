@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	int rank;
 	int size;
 
-	// Solver Options List 4 direct solver mumps
+	//// Solver Options List 4 direct solver mumps
 	PetscOptionsSetValue(NULL, "-ksp_type", "preonly");
 	PetscOptionsSetValue(NULL, "-ksp_error_if_not_converged", "1");
 	PetscOptionsSetValue(NULL, "-pc_type", "lu");

@@ -16,7 +16,7 @@ enum PRIOR_DISTRIBUTION{ UNIFORM, GAUSSIAN };
 class NSE2dSolverLag{
 private:
     Mat LHS;
-    Vec X,X_snap,intVecObs,intVecQoi,RHS;
+    Vec X,X_snap,intVecQoi,RHS;
     KSP ksp;
     PC  pc;
     IS  isrowcol;
@@ -28,12 +28,14 @@ public:
 
     int stabOption=0;
     int level,timeSteps,num_term,rank;
-    double nu = 0.1;
+    int idx1, idx2;
+    double nu=0.1;
     double time=0.0,tMax=1.0,deltaT;
-    double obs,noiseVariance;
+    double noiseVariance;
     double beta = 1.0;
-    double z0[10] = {0.0};
+    double z0[10] = {0.49081423,0.90790136,0.01243684,0.31235,0.97549782,0.20306799,0.03477005,0.1107383,0.72502269,0.57489244};
 
+    std::unique_ptr<double[]> obs_input;
     std::unique_ptr<double[]> z;
     std::unique_ptr<double[]> samples;
     std::unique_ptr<double[]> ux;
@@ -49,7 +51,6 @@ public:
         MatDestroy(&LHS);
         VecDestroy(&X);
         VecDestroy(&X_snap);
-        VecDestroy(&intVecObs);
         VecDestroy(&intVecQoi);
         VecDestroy(&RHS);
         KSPDestroy(&ksp);
@@ -64,9 +65,9 @@ public:
     void ForwardStep();
     void UpdateZ(int time_idx);
     void solve(bool flag=0);
-    double solve4Obs();
-    double solve4QoI();
-    double ObsOutput();
-    double QoiOutput();
+    void solve4QoI(double qoi[], int size=1);
+    void solve4Obs(double obs[], int size=1);
+    void ObsOutput(double obs[], int size=1);
+    void QoiOutput(double qoi[], int size=1);
     double lnLikelihood();
 };

@@ -1,9 +1,11 @@
-from re import M
 import numpy as np
 import math
+import sys
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from scipy.integrate import newton_cotes
+
+np.set_printoptions(threshold=sys.maxsize)
 
 def init_mesh(N):
     global  x, y, dx, X, Y, AliasCor, Kx, Ky, K2, K2inv, vx, vy, Vx_hat, Vy_hat
@@ -36,12 +38,21 @@ def init_mesh(N):
     Vy_hat = np.fft.fft2(vy)
 
 def rf1(m, t):
-    f = -m*np.multiply(np.cos(2*math.pi*X), np.sin(2*math.pi*Y))*(math.exp(t)-1.0)
+    f = m*(np.multiply(np.cos(2*math.pi*X), np.sin(2*math.pi*Y))+1.0)*math.exp(t)
     return f
 
 def rf2(m, t):
-    f = m*np.multiply(np.sin(2*math.pi*X), np.cos(2*math.pi*Y))*(math.exp(t)-1.0)
+    f = -m*(np.multiply(np.sin(2*math.pi*X), np.cos(2*math.pi*Y))+1.0)*math.exp(t)
     return f
+
+# def rf1(m, t):
+#     f = m*(np.cos(2*math.pi*X)-np.sin(2*math.pi*Y)+2)*math.exp(t)
+#     return f
+
+# def rf2(m, t):
+#     f = -m*(np.sin(2*math.pi*X)-np.cos(2*math.pi*Y)+2)*math.exp(t)
+#     return f
+
 
 def rhs(m, t):
     global vx, vy
@@ -75,9 +86,7 @@ def rhs(m, t):
     return Hx, Hy
 
 def init_tracers(num_tracers):
-    z = []
-    for i in range(num_tracers):
-        z.append([np.random.uniform(0, 1, 2)])
+    z = [[np.array([0.49081423,0.90790136])],[np.array([0.01243684,0.31235])],[np.array([0.97549782,0.20306799])],[np.array([0.03477005,0.1107383])],[np.array([0.72502269,0.57489244])]]
     return z
 
 def get_velocity(loc):
@@ -101,41 +110,44 @@ def get_velocity(loc):
 
     #bilinear interpolation
     interp2d = np.array([[x2*y2, -x2*y1, -x1*y2, x1*y1], [-y2, y1, y2, -y1], [-x2, x2, x1, -x1], [1, -1, -1, 1]])
-    a = 1.0/dx/dx*np.dot(interp2d, np.array([vx[idxx1, idxy1], vx[idxx1, idxy2], vx[idxx2, idxy1], vx[idxx2, idxy2]]))
+    a = 1.0/dx/dx*np.dot(interp2d, np.array([vx[idxy1, idxx1], vx[idxy2, idxx1], vx[idxy1, idxx2], vx[idxy2, idxx2]]))
     u1 = np.dot(a, np.array([1, loc[0], loc[1], loc[0]*loc[1]]))
-    a = 1.0/dx/dx*np.dot(interp2d, np.array([vy[idxx1, idxy1], vy[idxx1, idxy2], vy[idxx2, idxy1], vy[idxx2, idxy2]]))
+    a = 1.0/dx/dx*np.dot(interp2d, np.array([vy[idxy1,idxx1], vy[idxy2, idxx1], vy[idxy1, idxx2], vy[idxy2, idxx2]]))
     u2 = np.dot(a, np.array([1, loc[0], loc[1], loc[0]*loc[1]]))
 
     return np.array([u1, u2])
 
 def update_tracer(z, dt):
     for tracer in z:
-        velocity = get_velocity(tracer[-1])
+        tracer_interp = np.copy(tracer[-1])
+        while tracer_interp[0] >= 1.0:
+            tracer_interp[0] = tracer_interp[0] - 1.0
+        while tracer_interp[0] < 0.0:
+            tracer_interp[0] = tracer_interp[0] + 1.0
+        while tracer_interp[1] >= 1.0:
+            tracer_interp[1] = tracer_interp[1] - 1.0
+        while tracer_interp[1] < 0.0:
+            tracer_interp[1] = tracer_interp[1] + 1.0
+        velocity = get_velocity(tracer_interp)
         tracer_update = tracer[-1]+velocity*dt
-        if tracer_update[0] >= 1.0:
-            tracer_update[0] = tracer_update[0] - 1.0
-        if tracer_update[0] < 0.0:
-            tracer_update[0] = tracer_update[0] + 1.0
-        if tracer_update[1] >= 1.0:
-            tracer_update[1] = tracer_update[1] - 1.0
-        if tracer_update[1] < 0.0:
-            tracer_update[1] = tracer_update[1] + 1.0
         tracer.append(tracer_update)
+        # print("speed: ", velocity)
+        # print("tracer: ", tracer[-1])
     return z
 
 def RK4(t0, tf, ds):
     global Vx_hat, Vy_hat, vx, vy
     t = t0
 
-    fig, ax = plt.subplots(1, 2)
-    cax1 = make_axes_locatable(ax[0]).append_axes("right", size="5%", pad="2%")
-    cax2 = make_axes_locatable(ax[1]).append_axes("right", size="5%", pad="2%")
+    # fig, ax = plt.subplots(1, 2)
+    # cax1 = make_axes_locatable(ax[0]).append_axes("right", size="5%", pad="2%")
+    # cax2 = make_axes_locatable(ax[1]).append_axes("right", size="5%", pad="2%")
 
     z = init_tracers(5)
+    # for tracers in z:
+    #     print(tracers[0])
 
     while t < tf - 0.5*ds:
-        print(t)
-
         Hx, Hy = rhs(m, t)
         Qx = Hx*ds
         Qy = Hy*ds
@@ -169,20 +181,29 @@ def RK4(t0, tf, ds):
         vx = np.real(np.fft.ifft2(Vx_hat))
         vy = np.real(np.fft.ifft2(Vy_hat))
 
-        update_tracer(z, ds)
+        z = update_tracer(z, ds)
         t = t+ds
 
-        if int(t*10000) % 100 == 0:
-            vx_plot=ax[0].contourf(X, Y, vx)
-            vy_plot=ax[1].contourf(X, Y, vy)
-            fig.colorbar(vx_plot, cax=cax1)
-            fig.colorbar(vy_plot, cax=cax2)
-            for tracers in z:
-                z_array = np.array(tracers)
-                ax[0].plot(z_array[:, 0], z_array[:, 1], "ro", linestyle = 'None')
-                ax[1].plot(z_array[:, 0], z_array[:, 1], "ro", linestyle = 'None')
-            plt.pause(0.0001)
+        # if int(t*10000) % 500 == 0:
+        #     print(t)
+        #     vx_plot=ax[0].contourf(X, Y, vx)
+        #     vy_plot=ax[1].contourf(X, Y, vy)
+        #     fig.colorbar(vx_plot, cax=cax1)
+        #     fig.colorbar(vy_plot, cax=cax2)
+        #     for tracers in z:
+        #         z_array = np.array(tracers)
+        #         ax[0].plot(z_array[:, 0], z_array[:, 1], "ro", linestyle = 'None')
+        #         ax[1].plot(z_array[:, 0], z_array[:, 1], "ro", linestyle = 'None')
+        #         # print(tracers[-1])
+        #     plt.pause(0.0001)
 
+    integral_results = int2d_newton_cotes(N, 0.5)
+    z_final = []
+    for tracer in z:
+        z_final.append(tracer[int(0.5/ds)])
+    for tracer in z:
+        z_final.append(tracer[-1])
+    return [integral_results, z_final]
 
 def int2d_newton_cotes(N, power):
     NC=7  #need to be odd number
@@ -243,16 +264,15 @@ def solve_NS(sample):
     init_mesh(N)
 
     t0 = 0.0
-    tf = 5.0
+    tf = 1.0
     ds = 0.0001
-    RK4(t0, tf, ds)
+    qoi, obs = RK4(t0, tf, ds)
 
-    results = int2d_newton_cotes(N, 0.5)
-    print(results)
+    return [qoi, obs]
 
 
 if __name__ == "__main__":
-    solve_NS(1.0)
+    print(solve_NS(0.8))
 
     # fig, ax = plt.subplots(1, 2)
     # cax1 = make_axes_locatable(ax[0]).append_axes("right", size="5%", pad="2%")

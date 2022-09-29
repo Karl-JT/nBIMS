@@ -3,20 +3,22 @@
 
 NSE2dSolverLag::NSE2dSolverLag(MPI_Comm comm_, int level_, int num_term_, double noiseVariance_):comm(comm_), level(level_), num_term(num_term_), noiseVariance(noiseVariance_){
     mesh      = new structureMesh2D(comm_, level_, 3, Q1);
-    obs       = 43.30310812; //-9.65649652758160; //-1.876536734487264; //
     timeSteps = std::pow(2, level_+1);
     deltaT    = tMax/timeSteps;
 
+    double obs_read[20] = {0.63979175, 0.79484298, 0.17199418, 0.19541597, 1.13408598, 0.07899129, 0.17270835, -0.02744946, 0.84578063, 0.41139245, 1.11225036, 0.32293072, 0.65912191, -0.30282125, 1.62780146, -0.42925516, 0.65568777, -0.5237915, 1.35274024, -0.08863465};
+    obs_input = std::make_unique<double[]>(20);
     samples   = std::make_unique<double[]>(num_term_);
     z         = std::make_unique<double[]>(10*(timeSteps+1));
     for (int i=0; i<10; i++){
         z[i] = z0[i];
-        std::cout << z[i] << " ";
+        obs_input[2*i]   = obs_read[2*i];
+        obs_input[2*i+1] = obs_read[2*i+1];
+	//std::cout << z[i] << " ";
     };
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
     DMCreateGlobalVector(mesh->meshDM,&X);
-    DMCreateGlobalVector(mesh->meshDM,&intVecObs);
     DMCreateGlobalVector(mesh->meshDM,&intVecQoi);
 
     VecZeroEntries(X);
@@ -38,8 +40,7 @@ void NSE2dSolverLag::LinearSystemSetup()
     AssembleQ(mesh->Q, mesh->meshDM);
     AssembleD(mesh->D, mesh->meshDM);
 
-    AssembleIntegralOperator(intVecQoi,mesh->meshDM,1.5);
-    AssembleIntegralOperator(intVecObs,mesh->meshDM,0.5);
+    AssembleIntegralOperator(intVecQoi,mesh->meshDM,0.5);
 
     Mat Workspace;
     MatScale(mesh->M, 1.0/deltaT);
@@ -47,7 +48,6 @@ void NSE2dSolverLag::LinearSystemSetup()
     MatPtAP(mesh->G,mesh->D,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&Workspace);
     MatAXPY(mesh->A,1.0,mesh->M, SAME_NONZERO_PATTERN);
     MatAXPY(mesh->A,1.0,Workspace, DIFFERENT_NONZERO_PATTERN);
-
 
     MatDuplicate(mesh->A, MAT_DO_NOT_COPY_VALUES, &LHS);
     MatDestroy(&Workspace);
@@ -93,14 +93,27 @@ void NSE2dSolverLag::UpdateZ(int time_idx){
     double pointwiseVel[2];
     double tracerLocation[2];
     for (int i=0; i<5; i++){
-        tracerLocation[0] = z[i*time_idx];
-        tracerLocation[1] = z[i*time_idx+1];
-        SolutionPointWiseInterpolation(mesh->meshDM, mesh->vortex_num_per_row, X, time_idx, tracerLocation, pointwiseVel);
-        z[i*(time_idx+1)] = z[i*time_idx] + pointwiseVel[0]*deltaT;
-        z[i*(time_idx+1)+1] = z[i*time_idx+1] + pointwiseVel[1]*deltaT;
-        std::cout << z[i*(time_idx+1)] << " " << z[i*(time_idx+1)+1] << " ";
+        tracerLocation[0] = z[10*time_idx+2*i];
+        tracerLocation[1] = z[10*time_idx+2*i+1];
+	//std::cout << "Last Location: " << tracerLocation[0] << " " << tracerLocation[1] <<std::endl;
+        SolutionPointWiseInterpolation(mesh->meshDM, mesh->vortex_num_per_row, X, tracerLocation, pointwiseVel);
+        //std::cout << "current velocity: " << pointwiseVel[0] << " " << pointwiseVel[1] << " "; 
+	z[10*(time_idx+1)+2*i] = z[10*time_idx+2*i] + pointwiseVel[0]*deltaT;
+        z[10*(time_idx+1)+2*i+1] = z[10*time_idx+2*i+1] + pointwiseVel[1]*deltaT;
+	while (z[10*(time_idx+1)+2*i] >= 1.0) {
+		z[10*(time_idx+1)+2*i] = z[10*(time_idx+1)+2*i]-1.0;	
+	}
+        while (z[10*(time_idx+1)+2*i] < 0.0) {
+                z[10*(time_idx+1)+2*i] = z[10*(time_idx+1)+2*i]+1.0;
+        }	
+	while (z[10*(time_idx+1)+2*i+1] >= 1.0) {
+		z[10*(time_idx+1)+2*i+1] = z[10*(time_idx+1)+2*i+1]-1.0;	
+	}
+        while (z[10*(time_idx+1)+2*i+1] < 0.0) {
+                z[10*(time_idx+1)+2*i+1] = z[10*(time_idx+1)+2*i+1]+1.0;
+        }
+        //std::cout << "updated location: " << z[10*(time_idx+1)+2*i] << " " << z[10*(time_idx+1)+2*i+1] << std::endl;   
     };
-    std::cout << std::endl;
 };
 
 void NSE2dSolverLag::solve(bool flag)
@@ -108,28 +121,25 @@ void NSE2dSolverLag::solve(bool flag)
 	VecZeroEntries(X);
 	time = 0.0;
 
-	for (int i = 0; i < timeSteps; ++i){
+	for (int i = 0; i < timeSteps; i++){
 	    //std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
 	    //std::clock_t c_start = std::clock();
             //auto wcts = std::chrono::system_clock::now();	
-
 	    time = time+deltaT;
+            //std::cout << "time " << time << std::endl;
 	    ForwardStep();
-        UpdateZ(i);
+            UpdateZ(i);
 
 	    if (abs(time-0.5) <1e-6){
-                VecCopy(X, X_snap);
-                solve4QoI();
-	        if (flag == 1){
-		    return;
-		    }
-	    }	
+                idx1=i+1;	    
+            }	
             //std::clock_t c_end = std::clock();
             //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
             //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
             //std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;	
 	}
-	solve4Obs();
+        VecCopy(X, X_snap);
+        idx2 = timeSteps;
 };
 
 void NSE2dSolverLag::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)
@@ -146,30 +156,33 @@ void NSE2dSolverLag::priorSample(double initialSamples[], PRIOR_DISTRIBUTION fla
     }
 };
 
-double NSE2dSolverLag::solve4QoI(){
-    return QoiOutput();
+void NSE2dSolverLag::solve4QoI(double qoi[], int size){
+    QoiOutput(qoi, 1);
 };
 
-double NSE2dSolverLag::solve4Obs(){
-    return ObsOutput();
+void NSE2dSolverLag::solve4Obs(double obs[], int size){
+    ObsOutput(obs, 10);
 };
 
-double NSE2dSolverLag::ObsOutput(){
-    double obs;
-    VecDot(intVecObs, X, &obs);
-    obs = 100.*obs;
-    return obs;	
+void NSE2dSolverLag::ObsOutput(double obs[], int size){
+    for (int i=0; i<size; i++){
+        obs[i] = z[10*idx1+i];
+        obs[10+i] = z[10*idx2+i];
+    }
 };
 
-double NSE2dSolverLag::QoiOutput(){
-    double qoi;
-    VecDot(intVecQoi, X_snap, &qoi);
-    qoi = 100.*qoi;
-    return qoi;
+void NSE2dSolverLag::QoiOutput(double qoi[], int size){
+    double temp;
+    VecDot(intVecQoi, X, &temp);
+    qoi[0] = 100.*temp;
 };
 
 double NSE2dSolverLag::lnLikelihood(){
-	double obsResult = ObsOutput();
-	double lnLikelihood = -0.5/noiseVariance*pow(obsResult-obs,2);
+	double obsResult[20];
+        ObsOutput(obsResult, 10);
+	double lnLikelihood = 0;
+        for (int i=0; i<20; i++){
+            lnLikelihood+=-0.5/noiseVariance*pow(obsResult[i]-obs_input[i],2);
+        }
 	return lnLikelihood;
 };

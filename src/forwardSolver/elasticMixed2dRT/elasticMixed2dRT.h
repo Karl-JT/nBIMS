@@ -48,11 +48,11 @@ class LameC0 : public Expression
     {
 	//option0
         //values[0] = exp(m[0]*(cos(2*M_PI*x[0])*sin(2*M_PI*x[1])));
-    	//option1
+    	////option1
 	values[0]=0;
-	for (int i=0; i<2; i++){
-          for (int j=0; j<2; j++){
-            values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[1])*(*basis_func_ptr[j])(x[0])*pow(decay_rate[5*i+j], -1.5);
+	for (int i=0; i<5; i++){
+          for (int j=0; j<5; j++){
+            values[0] += m[5*i+j]*(*basis_func_ptr[i])(x[0])*(*basis_func_ptr[j])(x[1])*pow(decay_rate[5*i+j], -1.5);
 	  }
         }
         values[0] = exp(values[0]);

@@ -40,6 +40,5 @@ src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o: src
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.h
-src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/forwardSolver/navierstokes2d/nseforcing.h
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/tool/numericalRecipes/numericalRecipes.h
 

@@ -93,109 +93,109 @@ int main(int argc, char* argv[])
             //cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
             //std::cout << "cpu_time_used: " << cpu_time_used << std::endl;
             double ZObs[20];
-            double qoi[1]; 
+            double qoi; 
             singleForwardSolver.ObsOutput(ZObs, 10);
             for (int i=0; i<10; i++){
                 std::cout << ZObs[2*i] << " " << ZObs[2*i+1] << std::endl;
             }
-            singleForwardSolver.QoiOutput(qoi, 1);
-            std::cout << qoi[0] << std::endl;
+            qoi = singleForwardSolver.QoiOutput();
+            std::cout << qoi << std::endl;
             break;
         }
 
-//        case 2: //MLMCMC estimation
-//        {
-//            double output;
-//            if (confData.parallelChain == 1){
-//                MPI_Comm PSubComm;
-//
-//                int color = rank % (size/confData.levels);
-//                MPI_Comm_split(PETSC_COMM_WORLD, color, rank/confData.levels, &PSubComm);			
-//
-//                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
-//                output = MLMCMCSolver.mlmcmcRun();
-//
-//                // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
-//                // output = MLMCMCSolver.mlmcmcRun();
-//
-//                if (rank == color){
-//                    std::cout << output << std::endl;
-//
-//                    std::string outputfile = "output_";
-//                    outputfile.append(std::to_string(rank));
-//
-//                    std::ofstream myfile;
-//                    myfile.open(outputfile);
-//                    for (int i = 0; i<confData.num_term; ++i){
-//                        myfile << output << " ";
-//                    }
-//                    myfile << std::endl;
-//                    myfile.close();
-//
-//                }
-//                MPI_Barrier(MPI_COMM_WORLD);
-//                if (rank == 0){
-//                    double buffer;
-//                    std::string finaloutput = "finalOutput";
-//                    std::ofstream outputfile;
-//                    outputfile.open(finaloutput);
-//                    for (int i = 0; i < size/confData.levels; i++){
-//                        std::string finalinput = "output_";
-//                        finalinput.append(std::to_string(i));
-//                        std::ifstream inputfile;
-//                        inputfile.open(finalinput, std::ios_base::in);
-//                        for(int i = 0; i < confData.num_term; ++i){
-//                            inputfile >> buffer;
-//                            outputfile << buffer << " ";
-//                        }
-//                        outputfile << std::endl;
-//                        inputfile.close();
-//                    }
-//                    outputfile.close();
-//                }	
-//
-//            } else {
-//                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
-//                output = MLMCMCSolver.mlmcmcRun();			
-//
-//                // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, 1, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
-//                // output = MLMCMCSolver.mlmcmcRun();
-//                std::cout << output << std::endl;
-//
-//                std::string outputfile = "output_";
-//                outputfile.append(std::to_string(rank));
-//
-//                std::ofstream myfile;
-//                myfile.open(outputfile);
-//                for (int i = 0; i<confData.num_term; ++i){
-//                    myfile << output << " ";
-//                }
-//                myfile << std::endl;
-//                myfile.close();
-//
-//                MPI_Barrier(MPI_COMM_WORLD);
-//                if (rank == 0){
-//                    double buffer;
-//                    std::string finaloutput = "finalOutput";
-//                    std::ofstream outputfile;
-//                    outputfile.open(finaloutput);
-//                    for (int i = 0; i < size; i++){
-//                        std::string finalinput = "output_";
-//                        finalinput.append(std::to_string(i));
-//                        std::ifstream inputfile;
-//                        inputfile.open(finalinput, std::ios_base::in);
-//                        for(int i = 0; i < confData.num_term; ++i){
-//                            inputfile >> buffer;
-//                            outputfile << buffer << " ";
-//                        }
-//                        outputfile << std::endl;
-//                        inputfile.close();
-//                    }
-//                    outputfile.close();
-//                }	
-//            }
-//            break;
-//        }
+        case 2: //MLMCMC estimation
+        {
+            double output;
+            if (confData.parallelChain == 1){
+                MPI_Comm PSubComm;
+
+                int color = rank % (size/confData.levels);
+                MPI_Comm_split(PETSC_COMM_WORLD, color, rank/confData.levels, &PSubComm);			
+
+                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
+                output = MLMCMCSolver.mlmcmcRun();
+
+                // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                // output = MLMCMCSolver.mlmcmcRun();
+
+                if (rank == color){
+                    std::cout << output << std::endl;
+
+                    std::string outputfile = "output_";
+                    outputfile.append(std::to_string(rank));
+
+                    std::ofstream myfile;
+                    myfile.open(outputfile);
+                    for (int i = 0; i<confData.num_term; ++i){
+                        myfile << output << " ";
+                    }
+                    myfile << std::endl;
+                    myfile.close();
+
+                }
+                MPI_Barrier(MPI_COMM_WORLD);
+                if (rank == 0){
+                    double buffer;
+                    std::string finaloutput = "finalOutput";
+                    std::ofstream outputfile;
+                    outputfile.open(finaloutput);
+                    for (int i = 0; i < size/confData.levels; i++){
+                        std::string finalinput = "output_";
+                        finalinput.append(std::to_string(i));
+                        std::ifstream inputfile;
+                        inputfile.open(finalinput, std::ios_base::in);
+                        for(int i = 0; i < confData.num_term; ++i){
+                            inputfile >> buffer;
+                            outputfile << buffer << " ";
+                        }
+                        outputfile << std::endl;
+                        inputfile.close();
+                    }
+                    outputfile.close();
+                }	
+
+            } else {
+                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                output = MLMCMCSolver.mlmcmcRun();			
+
+                // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, 1, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                // output = MLMCMCSolver.mlmcmcRun();
+                std::cout << output << std::endl;
+
+                std::string outputfile = "output_";
+                outputfile.append(std::to_string(rank));
+
+                std::ofstream myfile;
+                myfile.open(outputfile);
+                for (int i = 0; i<confData.num_term; ++i){
+                    myfile << output << " ";
+                }
+                myfile << std::endl;
+                myfile.close();
+
+                MPI_Barrier(MPI_COMM_WORLD);
+                if (rank == 0){
+                    double buffer;
+                    std::string finaloutput = "finalOutput";
+                    std::ofstream outputfile;
+                    outputfile.open(finaloutput);
+                    for (int i = 0; i < size; i++){
+                        std::string finalinput = "output_";
+                        finalinput.append(std::to_string(i));
+                        std::ifstream inputfile;
+                        inputfile.open(finalinput, std::ios_base::in);
+                        for(int i = 0; i < confData.num_term; ++i){
+                            inputfile >> buffer;
+                            outputfile << buffer << " ";
+                        }
+                        outputfile << std::endl;
+                        inputfile.close();
+                    }
+                    outputfile.close();
+                }	
+            }
+            break;
+        }
 //
 //        case 3: //MLMCMC estimation
 //        {

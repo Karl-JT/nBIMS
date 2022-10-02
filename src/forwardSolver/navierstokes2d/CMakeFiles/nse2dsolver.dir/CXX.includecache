@@ -6,13 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp
-nse2d_Lag.h
-/home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.h
-nseforcing.h
-/home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
+/home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
+nse2d_PETSC_FE.h
+/home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.h
 
-/home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.h
+/home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.h
 memory
 -
 random
@@ -21,29 +19,19 @@ mpi.h
 -
 petsc.h
 -
-ctime
+petscdmplex.h
 -
-chrono
+petscsnes.h
 -
-numericalRecipes.h
+petscts.h
 -
-FEModule.h
+petscds.h
 -
-
-/home/shared/src/forwardSolver/navierstokes2d/nseforcing.h
-
-src/tool/FEModule/FEModule.h
 iostream
 -
-fstream
--
 ctime
 -
 chrono
--
-mpi.h
--
-petsc.h
 -
 numericalRecipes.h
 -

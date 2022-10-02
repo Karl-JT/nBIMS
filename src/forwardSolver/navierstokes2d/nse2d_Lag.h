@@ -65,9 +65,9 @@ public:
     void ForwardStep();
     void UpdateZ(int time_idx);
     void solve(bool flag=0);
-    void solve4QoI(double qoi[], int size=1);
-    void solve4Obs(double obs[], int size=1);
+    double solve4QoI();
+    double solve4Obs();
     void ObsOutput(double obs[], int size=1);
-    void QoiOutput(double qoi[], int size=1);
+    double QoiOutput();
     double lnLikelihood();
 };

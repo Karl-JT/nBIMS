@@ -315,7 +315,7 @@ void MLChain_Uni_0i<samplerType, solverType>::runInd(double QoImean[], int start
         getline(ss,temp,',');
         QoiIndt1=std::stod(temp);
 
-        std::cout << "likelihood " << Likelihoodt1Ind << "qoit1 " << QoiIndt1 << std::endl;
+        //std::cout << "likelihood " << Likelihoodt1Ind << "qoit1 " << QoiIndt1 << std::endl;
 
         this->alpha = this->sampler->getAlpha(Likelihoodt0Ind, Likelihoodt1Ind);
         this->alphaUni = log(this->uniform_distribution(*generator));
@@ -329,7 +329,7 @@ void MLChain_Uni_0i<samplerType, solverType>::runInd(double QoImean[], int start
             this->accepted = 0;
         }
         this->QoIsum[0]+=QoiIndt0;
-        std::cout << this->QoIsum[0] << std::endl;
+        //std::cout << this->QoIsum[0] << std::endl;
 	}
 	for (int i = 0; i < this->sampleSize; ++i){
 		QoImean[i] = this->QoIsum[i]/(this->maxChainLength-this->numBurnin);
@@ -408,7 +408,7 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::run(double QoImean[], double 
 	this->chainInit(generator);
 	this->QoIsum[0] = 0;
 	QoI2sum[0] = 0;
-    std::cout << "mac chain length" << this->maxChainLength << std::endl;
+        //std::cout << "mac chain length" << this->maxChainLength << std::endl;
 	for (int i = 1; i < this->maxChainLength+1; ++i){
 		runStep(generator);
 	}
@@ -706,7 +706,7 @@ void MLChain_Uni_i0Lower<samplerType, solverType>::runInd(double A0mean[], int s
         getline(ss,temp,',');
         QoiIndt1=std::stod(temp);
 
-        std::cout << "likelihood: " << Likelihoodt1IndLower << " Qoi: " << QoiIndt1 <<std::endl;
+        //std::cout << "likelihood: " << Likelihoodt1IndLower << " Qoi: " << QoiIndt1 <<std::endl;
 
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
@@ -735,7 +735,7 @@ void MLChain_Uni_i0Lower<samplerType, solverType>::runInd(double A0mean[], int s
         getline(ss,temp,',');
         QoiIndt1=std::stod(temp);
 
-        std::cout << "likelihood: " << Likelihoodt1IndLower << " Qoi: " << QoiIndt1 <<std::endl;
+        //std::cout << "likelihood: " << Likelihoodt1IndLower << " Qoi: " << QoiIndt1 <<std::endl;
 
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
@@ -750,7 +750,7 @@ void MLChain_Uni_i0Lower<samplerType, solverType>::runInd(double A0mean[], int s
             this->accepted = 0;
         }
 		this->QoIsum[0] += this->QoI[0];
-        std::cout << this->QoIsum[0] << " " << this->QoI[0] << std::endl;
+        //std::cout << this->QoIsum[0] << " " << this->QoI[0] << std::endl;
 	}
 	for (int i = 0; i < this->sampleSize; ++i){
 		A0mean[0] = this->QoIsum[0] / (this->maxChainLength-this->numBurnin);

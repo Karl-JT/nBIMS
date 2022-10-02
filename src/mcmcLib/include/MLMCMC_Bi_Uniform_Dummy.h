@@ -17,9 +17,7 @@ public:
 	int a;
 	int subRank;
 	int subSize;
-	double noiseVariance;
-	double randomSeed;
-	double beta;
+	double noiseVariance,randomSeed,beta,baseNum=10;
 	double* mean;
 	double out;
 	double* L;
@@ -71,6 +69,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
         M = (int) pow(2.0, 2.0*levels)/pow(log(levels), 2);    	
     }		
     M = (int) std::max(1, M);		    
+    M = M*baseNum;
 
     for (int i = 0; i < levels+1; ++i){
         L[i] = 0;
@@ -101,6 +100,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-subRank-1));
             }			
             M = (int) std::max(1, M);
+            M = M*baseNum;
 
             MLChain_Uni_0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[subRank+1].get(), solvers[subRank].get());
             chain0i.run(mean, &generator);
@@ -120,6 +120,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
             }
             M = (int) std::max(1, M);
+            M = M*baseNum;
             MLChain_Uni_0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[i].get(), solvers[i-1].get());
             chain0i.run(mean, &generator);
             L[0] += mean[0];
@@ -141,6 +142,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-subRank-1));
             }
             M = (int) std::max(1, M);
+            M = M*baseNum;
 
             MLChain_Uni_i0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[subRank+1].get(), solvers[subRank].get(), solvers[0].get());		
             chaini0Upper.run(A1, A2, &generator);
@@ -165,6 +167,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                     M = (int) pow(subRank+1+j, 4)*pow(2, 2*(levels-subRank-1-j));
                 }
                 M = (int) std::max(1, M);
+                M = M*baseNum;
 
                 MLChain_Uni_ijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[subRank].get(), solvers[j].get(), solvers[j-1].get());
                 chainijLower.run(A0, &generator);
@@ -197,6 +200,8 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                 M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
             }
             M = (int) std::max(1, M);
+            M = M*baseNum;
+
             MLChain_Uni_i0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get());
             chaini0Upper.run(A1, A2, &generator);
             MLChain_Uni_i0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[i-1].get(), solvers[0].get());
@@ -215,6 +220,8 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRun(){
                     M = (int) pow(i+j, 4)*pow(2, 2*(levels-i-j));
                 }
                 M = (int) std::max(1, M);
+                M = M*baseNum;
+
                 MLChain_Uni_ijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
                 chainijLower.run(A0, &generator);
                 MLChain_Uni_ijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
@@ -245,6 +252,7 @@ void MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcPreRun(int totalRank, int
     }		
     M = (int) std::max(1, M);		    
     M = (int)(M+5)*targetRank / totalRank + 1;	
+    M = M*baseNum;
 
     MLChain_Uni_00<samplerType, solverType> chain00(M, sampleSize, solvers[0].get());
     chain00.generateIndSamples(M, color, &generator);
@@ -262,6 +270,7 @@ void MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcPreRun(int totalRank, int
         }
         M = (int) std::max(1, M);
         M = (int)(M+5)*targetRank / totalRank + 1;	
+        M = M*baseNum;
 
         MLChain_Uni_0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[i].get(), solvers[i-1].get());
         chain0i.generateIndSamples(M, color, i, &generator);
@@ -278,7 +287,9 @@ void MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcPreRun(int totalRank, int
         } else if (a == 4){
             M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
         }
-        M = (int)(M+5)*targetRank / totalRank + 1;	
+        M = (int)(M+5)*targetRank / totalRank + 1;
+        M = M*baseNum;
+	
         MLChain_Uni_i0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get());
         chaini0Upper.generateIndSamples(M, color, i, &generator);
         MLChain_Uni_i0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[i-1].get(), solvers[0].get());
@@ -295,6 +306,7 @@ void MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcPreRun(int totalRank, int
                 M = (int) pow(i+j, 4)*pow(2, 2*(levels-i-j));
             }
             M = (int)(M+5)*targetRank / totalRank + 1;	
+            M = M*baseNum;
             MLChain_Uni_ijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
             chainijLower.generateIndSamples(M, color, i, j, &generator);
             MLChain_Uni_ijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
@@ -316,7 +328,8 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
     } else if (a == 4){
         M = (int) pow(2.0, 2.0*levels)/pow(log(levels), 2);    	
     }		
-    M = (int) std::max(1, M);		    
+    M = (int) std::max(1, M);
+    M = M*baseNum;		    
 
     for (int i = 0; i < levels+1; ++i){
         L[i] = 0;
@@ -338,6 +351,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
             M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
         }
         M = (int) std::max(1, M);
+        M = M*baseNum;
         MLChain_Uni_0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[i].get(), solvers[i-1].get());
         chain0i.runInd(mean,startLocation*(M+5)+1, i, &generator);
         L[0] += mean[0];
@@ -357,6 +371,8 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
             M = (int) pow(levels, 2)*pow(2, 2*(levels-i));
         }
         M = (int) std::max(1, M);
+        M = M*baseNum;
+
         MLChain_Uni_i0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get());
         chaini0Upper.runInd(A1, A2, startLocation*(M+5)+1, i, &generator);
         MLChain_Uni_i0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[i-1].get(), solvers[0].get());
@@ -375,6 +391,8 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
                 M = (int) pow(i+j, 4)*pow(2, 2*(levels-i-j));
             }
             M = (int) std::max(1, M);
+            M = M*baseNum;
+
             MLChain_Uni_ijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
             chainijLower.runInd(A0, startLocation*(M+5)+1, i, j, &generator);
             MLChain_Uni_ijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());

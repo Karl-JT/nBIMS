@@ -1367,7 +1367,5 @@ void SolutionPointWiseInterpolation(DM meshDM, int vortex_num_per_row, Vec X, do
     DMDAVecRestoreArray(cda, coords, &_coords);
     DMDAVecRestoreArray(meshDM,X_local,&states);
 
-    //VecDestroy(&coords);
-    //VecDestroy(&X_local);
-    //DMDestroy(&cda);
+    VecDestroy(&X_local);
 };

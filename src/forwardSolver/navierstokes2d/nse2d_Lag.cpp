@@ -156,12 +156,16 @@ void NSE2dSolverLag::priorSample(double initialSamples[], PRIOR_DISTRIBUTION fla
     }
 };
 
-void NSE2dSolverLag::solve4QoI(double qoi[], int size){
-    QoiOutput(qoi, 1);
+double NSE2dSolverLag::solve4QoI()
+{
+    double qoi=QoiOutput();
+    return qoi;
 };
 
-void NSE2dSolverLag::solve4Obs(double obs[], int size){
+double NSE2dSolverLag::solve4Obs(){
+    double obs[20];
     ObsOutput(obs, 10);
+    return 0;
 };
 
 void NSE2dSolverLag::ObsOutput(double obs[], int size){
@@ -171,10 +175,12 @@ void NSE2dSolverLag::ObsOutput(double obs[], int size){
     }
 };
 
-void NSE2dSolverLag::QoiOutput(double qoi[], int size){
-    double temp;
-    VecDot(intVecQoi, X, &temp);
-    qoi[0] = 100.*temp;
+double NSE2dSolverLag::QoiOutput(){
+    double qoi;
+    VecDot(intVecQoi, X, &qoi);
+    qoi = 100.*qoi;
+ //   std::cout << "qoi: " << qoi << std::endl << std::flush;
+    return qoi;
 };
 
 double NSE2dSolverLag::lnLikelihood(){
@@ -184,5 +190,6 @@ double NSE2dSolverLag::lnLikelihood(){
         for (int i=0; i<20; i++){
             lnLikelihood+=-0.5/noiseVariance*pow(obsResult[i]-obs_input[i],2);
         }
+//        std::cout << "lnlikelihood: " << lnLikelihood << std::endl << std::flush;
 	return lnLikelihood;
 };

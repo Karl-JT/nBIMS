@@ -95,23 +95,14 @@ void NSE2dSolverLag::UpdateZ(int time_idx){
     for (int i=0; i<5; i++){
         tracerLocation[0] = z[10*time_idx+2*i];
         tracerLocation[1] = z[10*time_idx+2*i+1];
-	//std::cout << "Last Location: " << tracerLocation[0] << " " << tracerLocation[1] <<std::endl;
+        
+        tracerLocation[0] = tracerLocation[0]-floor(tracerLocation[0]);
+        tracerLocation[1] = tracerLocation[1]-floor(tracerLocation[1]);                   
+                                                                                                
         SolutionPointWiseInterpolation(mesh->meshDM, mesh->vortex_num_per_row, X, tracerLocation, pointwiseVel);
         //std::cout << "current velocity: " << pointwiseVel[0] << " " << pointwiseVel[1] << " "; 
 	z[10*(time_idx+1)+2*i] = z[10*time_idx+2*i] + pointwiseVel[0]*deltaT;
         z[10*(time_idx+1)+2*i+1] = z[10*time_idx+2*i+1] + pointwiseVel[1]*deltaT;
-	while (z[10*(time_idx+1)+2*i] >= 1.0) {
-		z[10*(time_idx+1)+2*i] = z[10*(time_idx+1)+2*i]-1.0;	
-	}
-        while (z[10*(time_idx+1)+2*i] < 0.0) {
-                z[10*(time_idx+1)+2*i] = z[10*(time_idx+1)+2*i]+1.0;
-        }	
-	while (z[10*(time_idx+1)+2*i+1] >= 1.0) {
-		z[10*(time_idx+1)+2*i+1] = z[10*(time_idx+1)+2*i+1]-1.0;	
-	}
-        while (z[10*(time_idx+1)+2*i+1] < 0.0) {
-                z[10*(time_idx+1)+2*i+1] = z[10*(time_idx+1)+2*i+1]+1.0;
-        }
         //std::cout << "updated location: " << z[10*(time_idx+1)+2*i] << " " << z[10*(time_idx+1)+2*i+1] << std::endl;   
     };
 };
@@ -190,6 +181,6 @@ double NSE2dSolverLag::lnLikelihood(){
         for (int i=0; i<20; i++){
             lnLikelihood+=-0.5/noiseVariance*pow(obsResult[i]-obs_input[i],2);
         }
-//        std::cout << "lnlikelihood: " << lnLikelihood << std::endl << std::flush;
-	return lnLikelihood;
+	
+        return lnLikelihood;
 };

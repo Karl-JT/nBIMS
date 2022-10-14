@@ -100,6 +100,9 @@ int main(int argc, char* argv[])
             }
             qoi = singleForwardSolver.QoiOutput();
             std::cout << qoi << std::endl;
+            double lnLikeli;
+            lnLikeli = singleForwardSolver.lnLikelihood();
+            std::cout << "lnLikelihood: " << lnLikeli << std::endl;
             break;
         }
 
@@ -155,7 +158,7 @@ int main(int argc, char* argv[])
                 }	
 
             } else {
-                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
+                MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, (rank+1)*confData.randomSeed, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
                 output = MLMCMCSolver.mlmcmcRun();			
 
                 // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, 1, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);

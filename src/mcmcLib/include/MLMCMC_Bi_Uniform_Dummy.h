@@ -17,7 +17,7 @@ public:
 	int a;
 	int subRank;
 	int subSize;
-	double noiseVariance,randomSeed,beta,baseNum=10;
+	double noiseVariance,randomSeed,beta,baseNum=1;
 	double* mean;
 	double out;
 	double* L;

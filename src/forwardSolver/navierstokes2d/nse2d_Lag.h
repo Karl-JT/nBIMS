@@ -57,7 +57,7 @@ public:
     };
 
     void updateGeneratorSeed(double seed_);
-    void priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag=GAUSSIAN);
+    void priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag=UNIFORM);
 
     void StabOptionOn();
     void LinearSystemSetup();

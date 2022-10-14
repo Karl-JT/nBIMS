@@ -6,11 +6,31 @@
 
 #IncludeRegexTransform: 
 
-/home/shared/src/tool/FEModule/FEModule.cpp
+/home/yjuntao/nBIMS/src/tool/FEModule/FEModule.cpp
 FEModule.h
 -
 
+/home/yjuntao/nBIMS/src/tool/FEModule/FEModule2dMixed.cpp
+FEModule2dMixed.h
+-
+
 src/tool/FEModule/FEModule.h
+iostream
+-
+fstream
+-
+ctime
+-
+chrono
+-
+mpi.h
+-
+petsc.h
+-
+numericalRecipes.h
+-
+
+src/tool/FEModule/FEModule2dMixed.h
 iostream
 -
 fstream

@@ -6,11 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/shared/src/forwardSolver/elasticMixed2d/elasticMixed2d.cpp
+/home/yjuntao/nBIMS/src/forwardSolver/elasticMixed2d/elasticMixed2d.cpp
 elasticMixed2d.h
-/home/shared/src/forwardSolver/elasticMixed2d/elasticMixed2d.h
+/home/yjuntao/nBIMS/src/forwardSolver/elasticMixed2d/elasticMixed2d.h
 
-/home/shared/src/forwardSolver/elasticMixed2d/elasticMixed2d.h
+/home/yjuntao/nBIMS/src/forwardSolver/elasticMixed2d/elasticMixed2d.h
 memory
 -
 random

@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yjuntao/nBIMS
+CMAKE_SOURCE_DIR = /home/shared
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yjuntao/nBIMS
+CMAKE_BINARY_DIR = /home/shared
 
 # Include any dependencies generated for this target.
 include src/tool/IO/CMakeFiles/IO.dir/depend.make
@@ -59,29 +59,29 @@ include src/tool/IO/CMakeFiles/IO.dir/flags.make
 
 src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.o: src/tool/IO/CMakeFiles/IO.dir/flags.make
 src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.o: src/tool/IO/confIO.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.o"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/IO.dir/confIO.cpp.o -c /home/yjuntao/nBIMS/src/tool/IO/confIO.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.o"
+	cd /home/shared/src/tool/IO && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/IO.dir/confIO.cpp.o -c /home/shared/src/tool/IO/confIO.cpp
 
 src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/IO.dir/confIO.cpp.i"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/tool/IO/confIO.cpp > CMakeFiles/IO.dir/confIO.cpp.i
+	cd /home/shared/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/tool/IO/confIO.cpp > CMakeFiles/IO.dir/confIO.cpp.i
 
 src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/IO.dir/confIO.cpp.s"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/tool/IO/confIO.cpp -o CMakeFiles/IO.dir/confIO.cpp.s
+	cd /home/shared/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/tool/IO/confIO.cpp -o CMakeFiles/IO.dir/confIO.cpp.s
 
 src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.o: src/tool/IO/CMakeFiles/IO.dir/flags.make
 src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.o: src/tool/IO/dataIO.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.o"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/IO.dir/dataIO.cpp.o -c /home/yjuntao/nBIMS/src/tool/IO/dataIO.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.o"
+	cd /home/shared/src/tool/IO && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/IO.dir/dataIO.cpp.o -c /home/shared/src/tool/IO/dataIO.cpp
 
 src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/IO.dir/dataIO.cpp.i"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/tool/IO/dataIO.cpp > CMakeFiles/IO.dir/dataIO.cpp.i
+	cd /home/shared/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/tool/IO/dataIO.cpp > CMakeFiles/IO.dir/dataIO.cpp.i
 
 src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/IO.dir/dataIO.cpp.s"
-	cd /home/yjuntao/nBIMS/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/tool/IO/dataIO.cpp -o CMakeFiles/IO.dir/dataIO.cpp.s
+	cd /home/shared/src/tool/IO && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/tool/IO/dataIO.cpp -o CMakeFiles/IO.dir/dataIO.cpp.s
 
 # Object files for target IO
 IO_OBJECTS = \
@@ -95,9 +95,9 @@ src/tool/IO/libIO.a: src/tool/IO/CMakeFiles/IO.dir/confIO.cpp.o
 src/tool/IO/libIO.a: src/tool/IO/CMakeFiles/IO.dir/dataIO.cpp.o
 src/tool/IO/libIO.a: src/tool/IO/CMakeFiles/IO.dir/build.make
 src/tool/IO/libIO.a: src/tool/IO/CMakeFiles/IO.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libIO.a"
-	cd /home/yjuntao/nBIMS/src/tool/IO && $(CMAKE_COMMAND) -P CMakeFiles/IO.dir/cmake_clean_target.cmake
-	cd /home/yjuntao/nBIMS/src/tool/IO && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/IO.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libIO.a"
+	cd /home/shared/src/tool/IO && $(CMAKE_COMMAND) -P CMakeFiles/IO.dir/cmake_clean_target.cmake
+	cd /home/shared/src/tool/IO && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/IO.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/tool/IO/CMakeFiles/IO.dir/build: src/tool/IO/libIO.a
@@ -105,10 +105,10 @@ src/tool/IO/CMakeFiles/IO.dir/build: src/tool/IO/libIO.a
 .PHONY : src/tool/IO/CMakeFiles/IO.dir/build
 
 src/tool/IO/CMakeFiles/IO.dir/clean:
-	cd /home/yjuntao/nBIMS/src/tool/IO && $(CMAKE_COMMAND) -P CMakeFiles/IO.dir/cmake_clean.cmake
+	cd /home/shared/src/tool/IO && $(CMAKE_COMMAND) -P CMakeFiles/IO.dir/cmake_clean.cmake
 .PHONY : src/tool/IO/CMakeFiles/IO.dir/clean
 
 src/tool/IO/CMakeFiles/IO.dir/depend:
-	cd /home/yjuntao/nBIMS && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/tool/IO /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/tool/IO /home/yjuntao/nBIMS/src/tool/IO/CMakeFiles/IO.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/shared && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/shared /home/shared/src/tool/IO /home/shared /home/shared/src/tool/IO /home/shared/src/tool/IO/CMakeFiles/IO.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/tool/IO/CMakeFiles/IO.dir/depend
 

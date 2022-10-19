@@ -9,48 +9,48 @@ template <typename samplerType, typename solverType>
 class MLMCMC_Bi_Uniform{
 private:
 public:
-	MPI_Comm PSubComm;
-	int levels;
-	int sampleSize;
-	int M;
-	int color;
-	int a;
-	int subRank;
-	int subSize;
-	double noiseVariance,randomSeed,beta,baseNum=1;
-	double* mean;
-	double out;
-	double* L;
-	double* A0;
-	double* A1;
-	double* A2;
-	std::default_random_engine generator;
-	std::vector<std::shared_ptr<solverType>> solvers;
-
-	MLMCMC_Bi_Uniform(MPI_Comm PSubComm_, int levels_, int sampleSize_, int color_, int a_, double noiseVariance_, double randomSeed_, int beta_=1): PSubComm(PSubComm_), levels(levels_), sampleSize(sampleSize_), color(color_), a(a_), noiseVariance(noiseVariance_), randomSeed(randomSeed_), beta(beta_){
-		L = new double[levels+1];
-		solvers.resize(levels+1);
-		for(int i = 0; i < levels+1; ++i){
-			solvers[i] = std::make_shared<solverType>(MPI_COMM_SELF, i, sampleSize, noiseVariance);
+    MPI_Comm PSubComm;
+    int levels;
+    int sampleSize;
+    int M;
+    int color;
+    int a;
+    int subRank;
+    int subSize;
+    double noiseVariance,randomSeed,beta,baseNum=1;
+    double* mean;
+    double out;
+    double* L;
+    double* A0;
+    double* A1;
+    double* A2;
+    std::default_random_engine generator;
+    std::vector<std::shared_ptr<solverType>> solvers;
+    
+    MLMCMC_Bi_Uniform(MPI_Comm PSubComm_, int levels_, int sampleSize_, int color_, int a_, double noiseVariance_, double randomSeed_, int beta_=1): PSubComm(PSubComm_), levels(levels_), sampleSize(sampleSize_), color(color_), a(a_), noiseVariance(noiseVariance_), randomSeed(randomSeed_), beta(beta_){
+        L = new double[levels+1];
+        solvers.resize(levels+1);
+        for(int i = 0; i < levels+1; ++i){
+    	solvers[i] = std::make_shared<solverType>(MPI_COMM_SELF, i, sampleSize, noiseVariance);
             solvers[i]->rank = color;
-		}
-		generator.seed(color*13.0+randomSeed_*13.0);
-		mean = new double[sampleSize_];
-		A0 = new double[sampleSize_];
-		A1 = new double[sampleSize_];
-		A2 = new double[sampleSize_];
-
-		MPI_Comm_rank(PSubComm, &subRank);
-		MPI_Comm_size(PSubComm, &subSize);		
-		std::cout << "subComm: " << subSize << " " << subRank << " " << color << std::endl;
-	};
-	~MLMCMC_Bi_Uniform(){
-		delete[] L;
-		delete[] mean;
-		delete[] A0;
-		delete[] A1;
-		delete[] A2;
-	};
+        }
+        generator.seed(color*13.0+randomSeed_*13.0);
+        mean = new double[sampleSize_];
+        A0 = new double[sampleSize_];
+        A1 = new double[sampleSize_];
+        A2 = new double[sampleSize_];
+    
+        MPI_Comm_rank(PSubComm, &subRank);
+        MPI_Comm_size(PSubComm, &subSize);		
+        std::cout << "subComm: " << subSize << " " << subRank << " " << color << std::endl;
+    };
+    ~MLMCMC_Bi_Uniform(){
+        delete[] L;
+        delete[] mean;
+        delete[] A0;
+        delete[] A1;
+        delete[] A2;
+    };
 
     virtual double mlmcmcRun();
     virtual void mlmcmcPreRun(int totalRank, int targetRank);
@@ -336,7 +336,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
     }
 
     MLChain_Uni_00<samplerType, solverType> chain00(M, sampleSize, solvers[0].get());
-    chain00.runInd(mean, startLocation*(M+5)+1, &generator);
+    chain00.runInd(mean, startLocation, color, &generator);
     L[0] = mean[0];
     std::cout << "color: " << color << " subrank: " << subRank << " L00: " << L[0] << std::endl;
 
@@ -353,7 +353,7 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
         M = (int) std::max(1, M);
         M = M*baseNum;
         MLChain_Uni_0i<samplerType, solverType> chain0i(M, sampleSize, solvers[0].get(), solvers[i].get(), solvers[i-1].get());
-        chain0i.runInd(mean,startLocation*(M+5)+1, i, &generator);
+        chain0i.runInd(mean,startLocation, color, i, &generator);
         L[0] += mean[0];
         std::cout << "color: " << color << " L0+: " << L[0] << std::endl;
     }  	
@@ -374,9 +374,9 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
         M = M*baseNum;
 
         MLChain_Uni_i0Upper<samplerType, solverType> chaini0Upper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[0].get());
-        chaini0Upper.runInd(A1, A2, startLocation*(M+5)+1, i, &generator);
+        chaini0Upper.runInd(A1, A2, startLocation, color, i, &generator);
         MLChain_Uni_i0Lower<samplerType, solverType> chaini0Lower(M, sampleSize, solvers[i-1].get(), solvers[0].get());
-        chaini0Lower.runInd(A0, startLocation*(M+5)+1, i, &generator);
+        chaini0Lower.runInd(A0, startLocation, color, i, &generator);
         L[i] = A1[0]+A0[0]*A2[0];
         std::cout << A1[0] << " " << A0[0] << " " <<  A2[0] << std::endl;
         std::cout << "color: " << color << " L" << i << "+: " << L[i] << std::endl;
@@ -394,9 +394,9 @@ double MLMCMC_Bi_Uniform<samplerType, solverType>::mlmcmcRunInd(int startLocatio
             M = M*baseNum;
 
             MLChain_Uni_ijLower<samplerType, solverType> chainijLower(M, sampleSize, solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
-            chainijLower.runInd(A0, startLocation*(M+5)+1, i, j, &generator);
+            chainijLower.runInd(A0, startLocation, color, i, j, &generator);
             MLChain_Uni_ijUpper<samplerType, solverType> chainijUpper(M, sampleSize, solvers[i].get(), solvers[i-1].get(), solvers[j].get(), solvers[j-1].get());
-            chainijUpper.runInd(A1, A2, startLocation*(M+5)+1, i, j, &generator);
+            chainijUpper.runInd(A1, A2, startLocation, color, i, j, &generator);
             L[i] += A1[0]+ A0[0]*A2[0];
             std::cout << A1[0] << " " << A0[0] << " " <<  A2[0] << std::endl;
             std::cout << "color: " << color << " L" << i << "+: " << L[i] << std::endl;

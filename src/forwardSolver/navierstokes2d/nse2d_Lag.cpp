@@ -59,12 +59,12 @@ void NSE2dSolverLag::SolverSetup(){
 
     KSPCreate(comm, &ksp);
     KSPGetPC(ksp, &pc);
-    PCSetType(pc, PCFIELDSPLIT);
-    PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
+    //PCSetType(pc, PCFIELDSPLIT);
+    //PCFieldSplitSetDetectSaddlePoint(pc, PETSC_TRUE);
     //PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, NULL);
     //KSPMonitorSet(ksp, MyKSPMonitor, NULL, 0);
     PCSetFromOptions(pc);
-    KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
+    //KSPSetTolerances(ksp, 1e-8, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT);
     KSPSetFromOptions(ksp);
     KSPSetPC(ksp, pc);
 };
@@ -81,12 +81,8 @@ void NSE2dSolverLag::ForwardStep(){
     AssembleF(mesh->f,mesh->meshDM,time,forcing,samples.get(),num_term);
     MatMultAdd(mesh->M, X, mesh->f, RHS);
 
-    //MatCreateSubMatrix(LHS, isrowcol, isrowcol, MAT_REUSE_MATRIX, &LHS_sub);
-    //MatView(LHS_sub, PETSC_VIEWER_STDOUT_WORLD);
     KSPSetOperators(ksp,LHS,LHS);
-    //VecGetSubVector(RHS, isrowcol, &RHS_sub);
     KSPSolve(ksp, RHS, X);
-    //VecRestoreSubVector(RHS, isrowcol, &RHS_sub);
 };
 
 void NSE2dSolverLag::UpdateZ(int time_idx){
@@ -109,33 +105,41 @@ void NSE2dSolverLag::UpdateZ(int time_idx){
 
 void NSE2dSolverLag::solve(bool flag)
 {
-	VecZeroEntries(X);
-	time = 0.0;
+    VecZeroEntries(X);
+    time = 0.0;
 
-	for (int i = 0; i < timeSteps; i++){
-	    //std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
-	    //std::clock_t c_start = std::clock();
-            //auto wcts = std::chrono::system_clock::now();	
-	    time = time+deltaT;
-            //std::cout << "time " << time << std::endl;
-	    ForwardStep();
-            UpdateZ(i);
+    for (int i = 0; i < timeSteps; i++){
+        //std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
+	//std::clock_t c_start = std::clock();
+        //auto wcts = std::chrono::system_clock::now();	
+	time = time+deltaT;
+        //std::cout << "time " << time << std::endl;
+	ForwardStep();
 
-	    if (abs(time-0.5) <1e-6){
-                idx1=i+1;	    
-            }	
-            //std::clock_t c_end = std::clock();
-            //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
-            //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
-            //std::cout << "wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;	
-	}
-        VecCopy(X, X_snap);
-        idx2 = timeSteps;
+        //std::cout << "#################" << " level " << level << ", step " << i+1 << " #################" << std::endl;
+        //std::clock_t c_start = std::clock();
+        //auto wcts = std::chrono::system_clock::now(); 
+
+
+        UpdateZ(i);
+
+	if (abs(time-0.5) <1e-6){
+            idx1=i+1;	    
+        }	
+        //std::clock_t c_end = std::clock();
+        //double time_elapsed_ms = (c_end-c_start)/ (double)CLOCKS_PER_SEC;
+        //std::chrono::duration<double> wctduration = (std::chrono::system_clock::now() - wcts);
+        //std::cout << "updatez wall time " << wctduration.count() << " cpu  time: " << time_elapsed_ms << std::endl;	
+    }
+    //std::cout << "test stage 1" << std::endl << std::flush;
+    VecCopy(X, X_snap);
+    //std::cout << "test stage 2" << std::endl << std::flush;
+    idx2 = timeSteps;
 };
 
 void NSE2dSolverLag::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)
 {
-	switch(flag){
+    switch(flag){
         case UNIFORM:
             initialSamples[0] = uniformDistribution(generator);
             break;
@@ -153,9 +157,8 @@ double NSE2dSolverLag::solve4QoI()
     return qoi;
 };
 
-double NSE2dSolverLag::solve4Obs(){
-    double obs[20];
-    ObsOutput(obs, 10);
+double NSE2dSolverLag::solve4Obs(double obs[], int size){
+    ObsOutput(obs, size);
     return 0;
 };
 

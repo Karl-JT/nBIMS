@@ -7,7 +7,7 @@ template <typename samplerType, typename solverType>
 class MCMCChain : public MCMCBase {
 public:
 	int chainIdx = 0;
-	int numBurnin = 1;
+	int numBurnin = 5;
 	int maxChainLength;	
 	int sampleSize;
 	double alpha;
@@ -44,13 +44,15 @@ template <typename samplerType, typename solverType>
 void MCMCChain<samplerType, solverType>::chainInit(std::default_random_engine* generator){
     	chainIdx=0;
 	double initialSample[sampleSize];
+        double Workspace_Obs[20];
+        int Workspace_Obs_size=10;
 	solver->updateGeneratorSeed(1000*uniform_distribution(*generator));
 	solver->priorSample(initialSample);
 	for (int i = 0; i < sampleSize; ++i){
 		solver->samples[i] = initialSample[i];
 	}
 	solver->solve();
-	solver->solve4Obs();
+	solver->solve4Obs(Workspace_Obs, Workspace_Obs_size);
 	lnLikelihoodt0 = solver->lnLikelihood();
 	lnLikelihoodt1 = lnLikelihoodt0;
 	updateQoI();
@@ -63,8 +65,10 @@ void MCMCChain<samplerType, solverType>::sampleProposal(){
 
 template <typename samplerType, typename solverType> 
 void MCMCChain<samplerType, solverType>::updatelnLikelihood(){
-	solver->solve4Obs();
-	lnLikelihoodt1 = solver->lnLikelihood();
+    double Workspace_Obs[20];
+    int Workspace_Obs_size=10;
+    solver->solve4Obs(Workspace_Obs, Workspace_Obs_size);
+    lnLikelihoodt1 = solver->lnLikelihood();
     // std::cout << " lnLikelihoodt1 " << lnLikelihoodt1 << std::endl;
 }
 

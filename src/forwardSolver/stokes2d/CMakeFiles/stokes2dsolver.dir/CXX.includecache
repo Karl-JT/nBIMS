@@ -6,33 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.cpp
+/home/shared/src/forwardSolver/stokes2d/stokes2d.cpp
 stokes2d.h
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.h
+/home/shared/src/forwardSolver/stokes2d/stokes2d.h
 
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.h
-memory
--
-random
--
-mpi.h
--
-petsc.h
--
-ctime
--
-chrono
--
-numericalRecipes.h
--
-FEModule.h
--
-
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.cpp
-stokes2dpenalty.h
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.h
-
-/home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.h
+/home/shared/src/forwardSolver/stokes2d/stokes2d.h
 memory
 -
 random

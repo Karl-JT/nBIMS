@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/yjuntao/nBIMS/src/inverseSolver/mlmcmcNSE2dLag/mlmcmcNSE2dLag.cpp
+/home/shared/src/inverseSolver/mlmcmcNSE2dLag/mlmcmcNSE2dLag.cpp
 iostream
 -
 string
@@ -73,6 +73,12 @@ src/mcmcLib/include/MCMCChain.h
 src/mcmcLib/include/MLChains_Bi_Uniform.h
 MCMCChain.h
 src/mcmcLib/include/MCMCChain.h
+iostream
+-
+fstream
+-
+sstream
+-
 
 src/mcmcLib/include/MLMCMC_Bi_Dummy.h
 iostream

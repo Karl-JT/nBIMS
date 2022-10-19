@@ -86,7 +86,7 @@ void stokes2dSolver::solve(bool flag)
     // VecView(X, PETSC_VIEWER_STDOUT_WORLD);
 
     solve4QoI();
-	solve4Obs();
+    solve4Obs();
 };
 
 void stokes2dSolver::priorSample(double initialSamples[], PRIOR_DISTRIBUTION flag)

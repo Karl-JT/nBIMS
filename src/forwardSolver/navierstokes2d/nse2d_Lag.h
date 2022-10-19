@@ -66,7 +66,7 @@ public:
     void UpdateZ(int time_idx);
     void solve(bool flag=0);
     double solve4QoI();
-    double solve4Obs();
+    double solve4Obs(double obs[], int size=1);
     void ObsOutput(double obs[], int size=1);
     double QoiOutput();
     double lnLikelihood();

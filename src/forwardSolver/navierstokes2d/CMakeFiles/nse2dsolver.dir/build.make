@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yjuntao/nBIMS
+CMAKE_SOURCE_DIR = /home/shared
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yjuntao/nBIMS
+CMAKE_BINARY_DIR = /home/shared
 
 # Include any dependencies generated for this target.
 include src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/depend.make
@@ -59,94 +59,94 @@ include src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.o: src/forwardSolver/navierstokes2d/nse2d.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2d.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2d.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d.cpp > CMakeFiles/nse2dsolver.dir/nse2d.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2d.cpp > CMakeFiles/nse2dsolver.dir/nse2d.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2d.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d.cpp -o CMakeFiles/nse2dsolver.dir/nse2d.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2d.cpp -o CMakeFiles/nse2dsolver.dir/nse2d.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o: src/forwardSolver/navierstokes2d/nse2dCN.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCN.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2dCN.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCN.cpp > CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2dCN.cpp > CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCN.cpp -o CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2dCN.cpp -o CMakeFiles/nse2dsolver.dir/nse2dCN.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o: src/forwardSolver/navierstokes2d/nse2dCNDir.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp > CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp > CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp -o CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2dCNDir.cpp -o CMakeFiles/nse2dsolver.dir/nse2dCNDir.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o: src/forwardSolver/navierstokes2d/nse2dDir.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dDir.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2dDir.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dDir.cpp > CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2dDir.cpp > CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2dDir.cpp -o CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2dDir.cpp -o CMakeFiles/nse2dsolver.dir/nse2dDir.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o: src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp > CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp > CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2d_IC_f.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_IC_f.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o: src/forwardSolver/navierstokes2d/nse2d_Lag.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp > CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp > CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2d_Lag.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_Lag.cpp.s
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/flags.make
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o: src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o"
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o -c /home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp > CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.i
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp > CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.i
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.s
+	cd /home/shared/src/forwardSolver/navierstokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/navierstokes2d/nse2d_PETSC_FE.cpp -o CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.s
 
 # Object files for target nse2dsolver
 nse2dsolver_OBJECTS = \
@@ -170,9 +170,9 @@ src/forwardSolver/navierstokes2d/libnse2dsolver.a: src/forwardSolver/navierstoke
 src/forwardSolver/navierstokes2d/libnse2dsolver.a: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/nse2d_PETSC_FE.cpp.o
 src/forwardSolver/navierstokes2d/libnse2dsolver.a: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/build.make
 src/forwardSolver/navierstokes2d/libnse2dsolver.a: src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX static library libnse2dsolver.a"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -P CMakeFiles/nse2dsolver.dir/cmake_clean_target.cmake
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nse2dsolver.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX static library libnse2dsolver.a"
+	cd /home/shared/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -P CMakeFiles/nse2dsolver.dir/cmake_clean_target.cmake
+	cd /home/shared/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nse2dsolver.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/build: src/forwardSolver/navierstokes2d/libnse2dsolver.a
@@ -180,10 +180,10 @@ src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/build: src/forwardSo
 .PHONY : src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/build
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/clean:
-	cd /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -P CMakeFiles/nse2dsolver.dir/cmake_clean.cmake
+	cd /home/shared/src/forwardSolver/navierstokes2d && $(CMAKE_COMMAND) -P CMakeFiles/nse2dsolver.dir/cmake_clean.cmake
 .PHONY : src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/clean
 
 src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/depend:
-	cd /home/yjuntao/nBIMS && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d /home/yjuntao/nBIMS/src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/shared && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/shared /home/shared/src/forwardSolver/navierstokes2d /home/shared /home/shared/src/forwardSolver/navierstokes2d /home/shared/src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/forwardSolver/navierstokes2d/CMakeFiles/nse2dsolver.dir/depend
 

@@ -177,12 +177,12 @@ void MLChain_Uni_00<samplerType, solverType>::runInd(double QoImean[], int start
         this->alpha = this->sampler->getAlpha(Likelihoodt0Ind, Likelihoodt1Ind);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "00 burning, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0Ind=Likelihoodt1Ind;
             QoiIndt0=QoiIndt1;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "00 burning, sample rejected" << std::endl;
             this->accepted = 0;
         }
     }
@@ -207,12 +207,12 @@ void MLChain_Uni_00<samplerType, solverType>::runInd(double QoImean[], int start
         this->alpha = this->sampler->getAlpha(Likelihoodt0Ind, Likelihoodt1Ind);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "00 sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0Ind=Likelihoodt1Ind;
             QoiIndt0=QoiIndt1;            
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "00 sample rejected" << std::endl;
             this->accepted = 0;
         }
         this->QoIsum[0]+=QoiIndt0;
@@ -442,12 +442,12 @@ void MLChain_Uni_0i<samplerType, solverType>::runInd(double QoImean[], int start
         this->alpha = this->sampler->getAlpha(Likelihoodt0Ind, Likelihoodt1Ind);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            //std::cout << "sample accpeted" << std::endl;
+            std::cout << "0i burning, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0Ind=Likelihoodt1Ind;
             QoiIndt0=QoiIndt1;
         } else {
-            //std::cout << "sample rejected" << std::endl;
+            std::cout << "0i burning, sample rejected" << std::endl;
             this->accepted = 0;
         }
     }
@@ -474,12 +474,12 @@ void MLChain_Uni_0i<samplerType, solverType>::runInd(double QoImean[], int start
         this->alpha = this->sampler->getAlpha(Likelihoodt0Ind, Likelihoodt1Ind);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            //std::cout << "sample accpeted" << std::endl;
+            std::cout << "0i sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0Ind=Likelihoodt1Ind;
             QoiIndt0=QoiIndt1;            
         } else {
-            //std::cout << "sample rejected" << std::endl;
+            std::cout << "0i sample rejected" << std::endl;
             this->accepted = 0;
         }
         this->QoIsum[0]+=QoiIndt0;
@@ -772,14 +772,14 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::runInd(double A1mean[], doubl
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndUpper, Likelihoodt1IndUpper);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "i0, burning, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndUpper=Likelihoodt1IndUpper;
             QoiIndt0=QoiIndt1;
             this->PhiLower=-Likelihoodt1IndLower;
             this->PhiUpper=-Likelihoodt1IndUpper;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "i0, burning, sample rejected" << std::endl;
             this->accepted = 0;
         }
     }
@@ -817,7 +817,7 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::runInd(double A1mean[], doubl
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndUpper, Likelihoodt1IndUpper);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "i0, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndUpper=Likelihoodt1IndUpper;
             QoiIndt0=QoiIndt1;
@@ -825,7 +825,7 @@ void MLChain_Uni_i0Upper<samplerType, solverType>::runInd(double A1mean[], doubl
             this->PhiUpper=-Likelihoodt1IndUpper;
             this->QoI[0] = QoiIndt0;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "i0, sample rejected" << std::endl;
             this->accepted = 0;
         }
         this->QoIsum[0] += (1-exp(this->PhiUpper-this->PhiLower))*this->QoI[0];
@@ -1020,12 +1020,12 @@ void MLChain_Uni_i0Lower<samplerType, solverType>::runInd(double A0mean[], int s
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "i0 lower, burning, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndLower=Likelihoodt1IndLower;
             QoiIndt0=QoiIndt1;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "i0 lower, burning, sample rejected" << std::endl;
             this->accepted = 0;
         }
     }
@@ -1055,13 +1055,13 @@ void MLChain_Uni_i0Lower<samplerType, solverType>::runInd(double A0mean[], int s
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            //std::cout << "sample accpeted" << std::endl;
+            std::cout << "i0 lower sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndLower=Likelihoodt1IndLower;
             QoiIndt0=QoiIndt1;
             this->QoI[0] = QoiIndt0;
         } else {
-            //std::cout << "sample rejected" << std::endl;
+            std::cout << "i0 lower sample rejected" << std::endl;
             this->accepted = 0;
         }
 		this->QoIsum[0] += this->QoI[0];
@@ -1171,7 +1171,7 @@ void MLChain_Uni_ijLower<samplerType, solverType>::generateIndSamples(int target
         Workspace=solverUpper->solve4QoI()-solverLower->solve4QoI();myfile<<";"<<Workspace;
 
         for (int i = 0; i<this->sampleSize; ++i){
-            Workspace=this->solver->samples[i];myfile<<","<<Workspace;
+            Workspace=this->solver->samples[i];myfile<<";"<<Workspace;
         }
         myfile << std::endl;
     }
@@ -1193,14 +1193,14 @@ void MLChain_Uni_ijLower<samplerType, solverType>::generateIndSamples(int target
                 myfile<<"," << Workspace_Obs[i];
             }
 
-            Workspace=this->solver->lnLikelihood();myfile<<","<<Workspace;
+            Workspace=this->solver->lnLikelihood();myfile<<";"<<Workspace;
             solverUpper->solve(1);
             solverLower->solve(1);
-            Workspace=solverUpper->solve4QoI()-solverLower->solve4QoI();myfile<<","<<Workspace;
+            Workspace=solverUpper->solve4QoI()-solverLower->solve4QoI();myfile<<";"<<Workspace;
 
 
             for (int i = 0; i<this->sampleSize; ++i){
-                Workspace=this->solver->samples[i];myfile<<","<<Workspace;
+                Workspace=this->solver->samples[i];myfile<<";"<<Workspace;
             }
             myfile << std::endl;
         }
@@ -1268,12 +1268,12 @@ void MLChain_Uni_ijLower<samplerType, solverType>::runInd(double A0mean[], int s
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "ij lower burning, sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndLower=Likelihoodt1IndLower;
             QoiIndt0=QoiIndt1;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "ij lower burning, sample rejected" << std::endl;
             this->accepted = 0;
         }
     }
@@ -1298,16 +1298,18 @@ void MLChain_Uni_ijLower<samplerType, solverType>::runInd(double A0mean[], int s
         getline(ss,temp,';');
         QoiIndt1=std::stod(temp);
 
+        std::cout << "Likelihood" <<  Likelihoodt0IndLower << " " <<  Likelihoodt1IndLower << std::endl;
+
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndLower, Likelihoodt1IndLower);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted" << std::endl;
+            std::cout << "ij lower sample accpeted" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndLower=Likelihoodt1IndLower;
             QoiIndt0=QoiIndt1;
             this->QoI[0] = QoiIndt0;
         } else {
-            // std::cout << "sample rejected" << std::endl;
+            std::cout << "ij lower sample rejected" << std::endl;
             this->accepted = 0;
         }
 		this->QoIsum[0] += this->QoI[0];
@@ -1604,14 +1606,14 @@ void MLChain_Uni_ijUpper<samplerType, solverType>::runInd(double A1mean[], doubl
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndUpper, Likelihoodt1IndUpper);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted (burn-in period)" << std::endl;
+            std::cout << "sample accpeted (burn-in period)" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndUpper=Likelihoodt1IndUpper;
             QoiIndt0=QoiIndt1;
             this->PhiLower=-Likelihoodt1IndLower;
             this->PhiUpper=-Likelihoodt1IndUpper;
         } else {
-            // std::cout << "sample rejected (burn-in period)" << std::endl;
+            std::cout << "sample rejected (burn-in period)" << std::endl;
             this->accepted = 0;
         }
     }
@@ -1649,7 +1651,7 @@ void MLChain_Uni_ijUpper<samplerType, solverType>::runInd(double A1mean[], doubl
         this->alpha = this->sampler->getAlpha(Likelihoodt0IndUpper, Likelihoodt1IndUpper);
         this->alphaUni = log(this->uniform_distribution(*generator));
         if (this->alphaUni < this->alpha){
-            // std::cout << "sample accpeted (sampling period)" << std::endl;
+            std::cout << "sample accpeted (sampling period)" << std::endl;
             this->accepted = 1;
             Likelihoodt0IndUpper=Likelihoodt1IndUpper;
             QoiIndt0=QoiIndt1;
@@ -1657,7 +1659,7 @@ void MLChain_Uni_ijUpper<samplerType, solverType>::runInd(double A1mean[], doubl
             this->PhiUpper=-Likelihoodt1IndUpper;
             this->QoI[0] = QoiIndt0;
         } else {
-            // std::cout << "sample rejected (sampling period)" << std::endl;
+            std::cout << "sample rejected (sampling period)" << std::endl;
             this->accepted = 0;
         }
         this->QoIsum[0] += (1-exp(PhiUpper-PhiLower))*this->QoI[0];

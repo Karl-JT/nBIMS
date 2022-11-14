@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yjuntao/nBIMS
+CMAKE_SOURCE_DIR = /home/shared
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yjuntao/nBIMS
+CMAKE_BINARY_DIR = /home/shared
 
 # Include any dependencies generated for this target.
 include src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/depend.make
@@ -59,29 +59,29 @@ include src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/flags.make
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o: src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/flags.make
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o: src/forwardSolver/stokes2d/stokes2d.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o"
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.o -c /home/shared/src/forwardSolver/stokes2d/stokes2d.cpp
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.cpp > CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.i
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/stokes2d/stokes2d.cpp > CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.i
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2d.cpp -o CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.s
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/stokes2d/stokes2d.cpp -o CMakeFiles/stokes2dsolver.dir/stokes2d.cpp.s
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o: src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/flags.make
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o: src/forwardSolver/stokes2d/stokes2dpenalty.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o -c /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o"
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o -c /home/shared/src/forwardSolver/stokes2d/stokes2dpenalty.cpp
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.i"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.cpp > CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.i
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/shared/src/forwardSolver/stokes2d/stokes2dpenalty.cpp > CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.i
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.s"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/stokes2dpenalty.cpp -o CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.s
+	cd /home/shared/src/forwardSolver/stokes2d && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/shared/src/forwardSolver/stokes2d/stokes2dpenalty.cpp -o CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.s
 
 # Object files for target stokes2dsolver
 stokes2dsolver_OBJECTS = \
@@ -95,9 +95,9 @@ src/forwardSolver/stokes2d/libstokes2dsolver.a: src/forwardSolver/stokes2d/CMake
 src/forwardSolver/stokes2d/libstokes2dsolver.a: src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/stokes2dpenalty.cpp.o
 src/forwardSolver/stokes2d/libstokes2dsolver.a: src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/build.make
 src/forwardSolver/stokes2d/libstokes2dsolver.a: src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/yjuntao/nBIMS/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libstokes2dsolver.a"
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -P CMakeFiles/stokes2dsolver.dir/cmake_clean_target.cmake
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/stokes2dsolver.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/shared/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libstokes2dsolver.a"
+	cd /home/shared/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -P CMakeFiles/stokes2dsolver.dir/cmake_clean_target.cmake
+	cd /home/shared/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/stokes2dsolver.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/build: src/forwardSolver/stokes2d/libstokes2dsolver.a
@@ -105,10 +105,10 @@ src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/build: src/forwardSolve
 .PHONY : src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/build
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/clean:
-	cd /home/yjuntao/nBIMS/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -P CMakeFiles/stokes2dsolver.dir/cmake_clean.cmake
+	cd /home/shared/src/forwardSolver/stokes2d && $(CMAKE_COMMAND) -P CMakeFiles/stokes2dsolver.dir/cmake_clean.cmake
 .PHONY : src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/clean
 
 src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/depend:
-	cd /home/yjuntao/nBIMS && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/forwardSolver/stokes2d /home/yjuntao/nBIMS /home/yjuntao/nBIMS/src/forwardSolver/stokes2d /home/yjuntao/nBIMS/src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/shared && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/shared /home/shared/src/forwardSolver/stokes2d /home/shared /home/shared/src/forwardSolver/stokes2d /home/shared/src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/forwardSolver/stokes2d/CMakeFiles/stokes2dsolver.dir/depend
 

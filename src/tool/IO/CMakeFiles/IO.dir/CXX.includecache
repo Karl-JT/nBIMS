@@ -6,11 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/yjuntao/nBIMS/src/tool/IO/confIO.cpp
+/home/shared/src/tool/IO/confIO.cpp
 confIO.h
-/home/yjuntao/nBIMS/src/tool/IO/confIO.h
+/home/shared/src/tool/IO/confIO.h
 
-/home/yjuntao/nBIMS/src/tool/IO/confIO.h
+/home/shared/src/tool/IO/confIO.h
 iostream
 -
 vector
@@ -22,11 +22,11 @@ sstream
 algorithm
 -
 
-/home/yjuntao/nBIMS/src/tool/IO/dataIO.cpp
+/home/shared/src/tool/IO/dataIO.cpp
 dataIO.h
-/home/yjuntao/nBIMS/src/tool/IO/dataIO.h
+/home/shared/src/tool/IO/dataIO.h
 
-/home/yjuntao/nBIMS/src/tool/IO/dataIO.h
+/home/shared/src/tool/IO/dataIO.h
 iostream
 -
 fstream

@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/shared/src/tool/numericalRecipes/numericalRecipes.cpp
+/home/yjuntao/nBIMS/src/tool/numericalRecipes/numericalRecipes.cpp
 iostream
 -
 fstream
@@ -16,9 +16,9 @@ sstream
 math.h
 -
 numericalRecipes.h
-/home/shared/src/tool/numericalRecipes/numericalRecipes.h
+/home/yjuntao/nBIMS/src/tool/numericalRecipes/numericalRecipes.h
 
-/home/shared/src/tool/numericalRecipes/numericalRecipes.h
+/home/yjuntao/nBIMS/src/tool/numericalRecipes/numericalRecipes.h
 gsl/gsl_math.h
 -
 gsl/gsl_eigen.h

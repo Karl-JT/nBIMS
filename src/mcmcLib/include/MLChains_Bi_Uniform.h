@@ -1177,7 +1177,9 @@ void MLChain_Uni_ijLower<samplerType, solverType>::generateIndSamples(int target
     }
 
     if (completed != true){
+        std::cout << "targetSampleSize: " << targetSampleSize << std::endl << std::flush;
         targetSampleSize=targetSampleSize-readCount;
+        std::cout << "targetSample after redaCount: " << targetSampleSize << std::endl << std::flush;
 	for (int i = 1; i < targetSampleSize; ++i){
             this->sampleProposal();
             for (int i = 0; i < this->sampleSize; ++i){
@@ -1439,6 +1441,7 @@ void MLChain_Uni_ijUpper<samplerType, solverType>::generateIndSamples(int target
             std::cout << "last sample: " << lastSample << std::endl << std::flush;
             this->solver->samples[0] = std::stod(lastSample);
             std::cout << "continue from last sample" << this->solver->samples[0] << std::endl << std::flush;
+	    std::cout << "target sample size: " << targetSampleSize << " readCount: " << readCount << std::endl << std::flush;  
         }
         cFile.close();
         myfile.open(outputfile, std::ios_base::app);
@@ -1480,6 +1483,7 @@ void MLChain_Uni_ijUpper<samplerType, solverType>::generateIndSamples(int target
     }
 
     if (completed != true){
+        targetSampleSize = targetSampleSize - readCount;
 	for (int i = 1; i < targetSampleSize; ++i){
             this->sampleProposal();
             for (int i = 0; i < this->sampleSize; ++i){

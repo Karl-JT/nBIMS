@@ -1,2 +1,0 @@
-/home/juntao/Desktop/WorkSpace/MCMC4LargeScalePDE/src/mcmclib/CMakeFiles/rebuild_cache.dir
-/home/juntao/Desktop/WorkSpace/MCMC4LargeScalePDE/src/mcmclib/CMakeFiles/edit_cache.dir

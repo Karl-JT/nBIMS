@@ -267,14 +267,14 @@ int main(int argc, char* argv[])
                 MPI_Comm_split(PETSC_COMM_WORLD, color, rank/confData.levels, &PSubComm);
 
                 MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, 1.0);
-                MLMCMCSolver.mlmcmcPreRun(size, 8);
+                MLMCMCSolver.mlmcmcPreRun(size, 80);
                 //MLMCMCSolver.mlmcmcRunInd(1);
 
                 // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PSubComm, confData.levels, confData.num_term, color, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
                 // output = MLMCMCSolver.mlmcmcPreRun();
             } else {
                 MLMCMC_Bi_Uniform<pCN<NSE2dSolverLag>, NSE2dSolverLag> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, confData.num_term, rank, confData.a, confData.noiseVariance, confData.randomSeed*(rank+1), confData.pCNstep);
-                MLMCMCSolver.mlmcmcPreRun(size, 8);                   
+                MLMCMCSolver.mlmcmcPreRun(size, 80);                   
                 //MLMCMCSolver.mlmcmcRunInd(1);
                 // MLMCMC_Bi<pCN<NSE2dSolver>, NSE2dSolver> MLMCMCSolver(PETSC_COMM_SELF, confData.levels, 1, rank*confData.randomSeed/2, confData.a, confData.noiseVariance, confData.randomSeed, confData.pCNstep);
                 // output = MLMCMCSolver.mlmcmcPreRun();
